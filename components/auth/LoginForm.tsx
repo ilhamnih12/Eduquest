@@ -30,6 +30,23 @@ export function LoginForm() {
     setError(null);
     setIsLoading(true);
 
+    // Batas waktu fetch sesi agar tombol tidak pernah nyangkut di "Memproses..."
+    const fetchSessionWithTimeout = async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      try {
+        const res = await fetch('/api/auth/session', {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        return await res.json();
+      } catch {
+        return null;
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+
     try {
       const res = await signIn('credentials', {
         redirect: false,
@@ -42,13 +59,11 @@ export function LoginForm() {
           'Email atau kata sandi tidak sesuai, atau akun belum terdaftar. ' +
             'Silakan daftar terlebih dahulu bila belum punya akun.'
         );
-        setIsLoading(false);
         return;
       }
 
-      // Login sukses — ambil data sesi resmi dari NextAuth
-      const sessionRes = await fetch('/api/auth/session', { cache: 'no-store' });
-      const session = await sessionRes.json();
+      // Login sukses — ambil data sesi resmi dari NextAuth (fallback aman bila lambat)
+      const session = await fetchSessionWithTimeout();
       const sessionUser = session?.user;
 
       const username =
@@ -64,15 +79,24 @@ export function LoginForm() {
         lastLogin: new Date().toISOString(),
       });
 
-      await initGame(sessionUser?.email || email, username);
+      // Siapkan progres lokal — JANGAN biarkan memblokir navigasi bila storage lambat/terblokir
+      try {
+        await Promise.race([
+          initGame(sessionUser?.email || email, username),
+          new Promise((resolve) => setTimeout(resolve, 4000)),
+        ]);
+      } catch {
+        // Lanjut navigasi — halaman tujuan akan menyelesaikan inisialisasi sendiri
+      }
 
-      // Kembali ke halaman yang tadinya diminta (dari middleware), default /battle
+      // Kembali ke halaman yang tadinya diminta (dari middleware), default: halaman utama
       const params = new URLSearchParams(window.location.search);
       const callbackUrl = params.get('callbackUrl');
-      const safeCallback = callbackUrl && callbackUrl.startsWith('/') ? callbackUrl : '/battle';
+      const safeCallback = callbackUrl && callbackUrl.startsWith('/') ? callbackUrl : '/';
       router.push(safeCallback);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Gagal masuk ke dalam game.');
+    } finally {
       setIsLoading(false);
     }
   };

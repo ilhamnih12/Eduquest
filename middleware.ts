@@ -33,9 +33,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Sudah login → jangan tampilkan lagi halaman login/daftar
+  // Sudah login → jangan tampilkan lagi halaman login/daftar (arahkan ke halaman utama)
   if (token && isPublicPath) {
-    return NextResponse.redirect(new URL('/battle', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();

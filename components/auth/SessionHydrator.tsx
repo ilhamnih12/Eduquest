@@ -13,7 +13,7 @@ import type { User } from '@/types/user';
  */
 export function SessionHydrator() {
   const { user, setUser, logout } = useAuthStore();
-  const { isInitialized, initGame } = useGameStore();
+  const { initGame } = useGameStore();
 
   React.useEffect(() => {
     let cancelled = false;
@@ -41,9 +41,10 @@ export function SessionHydrator() {
 
           // Isi store bila berubah (misal setelah refresh halaman)
           setUser(hydratedUser);
-          if (!isInitialized) {
-            await initGame(hydratedUser.email, hydratedUser.username);
-          }
+          // Pastikan progres milik akun yang sedang login yang termuat.
+          // initGame sendiri sudah punya guard & timeout (tidak akan menggantung,
+          // dan otomatis dilewati bila sudah ter-init untuk user yang sama).
+          await initGame(hydratedUser.email, hydratedUser.username);
         } else {
           // Tidak ada sesi valid — bersihkan state lokal yang tersisa
           if (user) logout();

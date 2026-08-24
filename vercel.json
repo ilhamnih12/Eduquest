@@ -3,8 +3,5 @@
   "devCommand": "next dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["sin1"],
-  "env": {
-    "NEXTAUTH_URL": "https://eduquest-rpg.vercel.app"
-  }
+  "regions": ["sin1"]
 }
