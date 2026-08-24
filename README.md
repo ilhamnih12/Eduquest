@@ -38,7 +38,7 @@
 
 Setiap soal yang dijawab dengan benar akan melancarkan serangan (*damage*) bertenaga magis kepada monster ujian, menghasilkan *combo streak*, memberikan *Experience Points* (EXP) untuk menaikkan level karakter, serta menganugerahi keping emas (*gold*) yang dapat dibelanjakan di Toko Perlengkapan.
 
-Didukung oleh integrasi **Google Gemini AI (3.7 Flash, gratis di AI Studio)**, Eduquest mampu memproduksi soal-soal penalaran kontekstual baru tanpa batas, memberikan pembahasan terperinci setiap kali siswa salah menjawab, serta menghadirkan **AI Guru Pembimbing** yang menganalisis kelemahan akademik dan menyusun rekomendasi belajar mandiri secara personal.
+Didukung integrasi **Google Gemini AI Flash** lewat SDK resmi, Eduquest bisa membuat soal penalaran kontekstual, memberi pembahasan saat jawabanmu salah, dan menghadirkan **AI Guru Pembimbing** yang membaca pola belajarmu lalu memberi rekomendasi yang lebih personal.
 
 ---
 
@@ -49,6 +49,7 @@ Didukung oleh integrasi **Google Gemini AI (3.7 Flash, gratis di AI Studio)**, E
 - **Dukungan 3 Tingkat Kelas**: SMP Kelas 7, Kelas 8, dan Kelas 9.
 - **Ragam Monster Unik**: Setiap mata pelajaran dijaga oleh monster bertema unik (seperti *Slime Rumus*, *Titan Hukum Newton*, *Baron Monopoli*, *Penyair Majas*, dan *Vocabulary Sovereign Drake*).
 - **Mekanisme Combo Streak**: Menjawab benar berturut-turut meningkatkan multiplier serangan hingga +75% damage ekstra.
+- **Sesi Multi-Ronde**: Satu sesi berlangsung minimal 5 ronde. Jika monster pertama kalah terlalu cepat, gelombang monster lain muncul sebelum hadiah diberikan.
 - **Synthesized 8-Bit Audio**: Efek suara pertarungan dinamis (serangan, kritikal, pemulihan, kekalahan, kemenangan) menggunakan Web Audio API tanpa perlu aset mp3 eksternal sehingga 100% offline-ready.
 
 ### 🧠 2. Integrasi Google Gemini AI & Bank Soal Lokal
@@ -80,11 +81,11 @@ Didukung oleh integrasi **Google Gemini AI (3.7 Flash, gratis di AI Studio)**, E
 ### 🌐 6. Arsitektur Offline-First & Cloud Sync
 - **IndexedDB via Dexie.js**: Seluruh progres tersimpan otomatis di browser lokal.
 - **Wajib Akun Resmi**: Seluruh halaman game diproteksi middleware — mode tamu/akun demo sudah dihapus agar progres & rapor tersimpan aman.
-- **Vercel KV / Redis Cloud Sync**: Sinkronisasi akun antar perangkat saat terhubung internet.
+- **Upstash Redis Cloud Sync**: Sinkronisasi akun antarperangkat saat terhubung internet (nama env KV lama tetap didukung).
 
 ### 💬 7. AI Bubble — Guru AI Eduquest (Gemini)
 - **Widget Obrolan Mengambang**: Bubble "Guru AI" di pojok kanan bawah, siap ditanyai materi kapan saja.
-- **Ditenagai Google Gemini 3.7 Flash**: Menjawab dengan konteks profil siswa (nama, level, mapel terkuat/terlemah, akurasi). Key AI Studio baru (`AQ.`) didukung lewat SDK resmi `@google/genai`.
+- **Ditenagai Google Gemini Flash terbaru**: Menjawab dengan konteks profil siswa (nama, level, mapel terkuat/terlemah, akurasi). SDK resmi `@google/genai` dipakai agar integrasi mengikuti API Gemini terbaru.
 - **Riwayat Obrolan Tersimpan**: Percakapan bertahan di perangkat (localStorage) dan bisa dihapus kapan saja.
 - **Fallback Offline**: Tanpa `GEMINI_API_KEY` pun bubble tetap membalas dengan tutor lokal berbasis kata kunci.
 
@@ -99,8 +100,8 @@ Didukung oleh integrasi **Google Gemini AI (3.7 Flash, gratis di AI Studio)**, E
 | **Styling** | Tailwind CSS v3.4 | Palet warna khusus Nord-Edu tema Gelap/Terang |
 | **State Management** | Zustand v4 | Manajemen state reaktif tersinkronisasi |
 | **Penyimpanan Lokal** | Dexie.js (IndexedDB) | Basis data offline berkecepatan tinggi |
-| **Penyimpanan Cloud** | Vercel KV (@vercel/kv / Redis) | Penyimpanan sesi dan sinkronisasi server |
-| **Kecerdasan Buatan** | Google Gemini API (`gemini-3.7-flash`, fallback Flash gratis) | Generasi soal SMP, evaluasi belajar, & AI Bubble Guru AI |
+| **Penyimpanan Cloud** | Upstash Redis (`@upstash/redis`) | Penyimpanan sesi dan sinkronisasi server |
+| **Kecerdasan Buatan** | Google Gemini API (Flash terbaru + fallback stabil) | Generasi soal SMP per subbab, evaluasi belajar, & AI Bubble Guru AI |
 | **Otentikasi** | NextAuth.js v4 / Auth.js | Wajib Daftar/Login (Kredensial & Google OAuth) + Middleware Proteksi |
 | **Efek Audio** | Web Audio API Synthesizer | Efek suara chiptune 8-bit tanpa dependensi file eksternal |
 | **Testing** | Vitest 2.x | Pengujian unit kalkulator stat, damage, & drop rate |
@@ -110,7 +111,7 @@ Didukung oleh integrasi **Google Gemini AI (3.7 Flash, gratis di AI Studio)**, E
 
 ## 📚 Mata Pelajaran & Kurikulum
 
-Eduquest RPG mencakup 5 mata pelajaran inti kurikulum SMP:
+Eduquest RPG mencakup 5 mata pelajaran inti kurikulum SMP. Di Arena, setiap kombinasi mapel dan kelas memiliki **5 subbab** yang bisa dipilih atau diacak. Soal AI mengikuti subbab tersebut, sedangkan bank lokal menyediakan fallback saat koneksi atau API sedang tidak tersedia.
 
 1. **Matematika**
    - *Kelas 7*: Bilangan Bulat, Pecahan, Aljabar Sederhana, Himpunan, Perbandingan.
@@ -135,27 +136,33 @@ Eduquest RPG mencakup 5 mata pelajaran inti kurikulum SMP:
 5. **Bahasa Inggris**
    - *Kelas 7*: Greetings & Introduction, Simple Present Tense, Pronouns, Descriptive Text.
    - *Kelas 8*: Simple Past Tense, Recount Text, Degrees of Comparison, Modal Auxiliaries.
-   - *Kelas 9*: Narrative Folklore, Passive Voice, Conjunctions (*in order to / so that*), Report Text.
+   - *Kelas 9*: Narrative Folklore, Passive Voice, Conjunctions (*in order to atau so that*), Report Text.
 
 ---
 
 ## 🎮 Mekanik Game & Formula
 
 ### 1. Formula Kerusakan Pemain (Player Damage)
-$$\text{Damage} = \left\lfloor \text{Atk}_{\text{efektif}} \times \left(1 + \text{Level} \times 0.08\right) \times \text{StreakMultiplier} \times \text{BuffMultiplier} \times \text{CritMultiplier} \times \left(1 - \frac{\text{Def}_{\text{musuh}}}{\text{Def}_{\text{musuh}} + 50}\right) \right\rfloor$$
 
-- **Streak Bonus**: $1.0 + (\text{Streak} \times 0.15)$ (Maksimal 2.0x).
-- **Critical Hit**: Multiplier $1.75\times$ dengan peluang berbasis stat Agility & Senjata.
+Damage = ⌊Atk efektif × (1 + Level × 0,08) × Pengali Streak × Pengali Buff × Pengali Kritis × (1 − Def musuh ÷ (Def musuh + 50))⌋
+
+- **Bonus Streak**: 1,0 + (Streak × 0,15), maksimal 2,0×.
+- **Serangan Kritis**: pengali 1,75× dengan peluang berdasarkan stat Agility dan senjata.
 
 ### 2. Formula Kerusakan Musuh (Enemy Damage)
-$$\text{EnemyDamage} = \left\lfloor \text{Atk}_{\text{musuh}} \times \text{Varians}(0.9 - 1.1) \times \left(1 - \frac{\text{Def}_{\text{pemain}}}{\text{Def}_{\text{pemain}} + 60}\right) \right\rfloor$$
+
+Damage musuh = ⌊Atk musuh × Varians (0,9–1,1) × (1 − Def pemain ÷ (Def pemain + 60))⌋
 
 ### 3. Formula Kebutuhan Pengalaman (EXP Curve)
-$$\text{RequiredEXP}(\text{Level}) = \left\lfloor 100 \times 1.22^{(\text{Level} - 1)} + (\text{Level} - 1) \times 35 \right\rfloor$$
+
+EXP yang dibutuhkan = ⌊100 × 1,22⁽Level − 1⁾ + (Level − 1) × 35⌋
 
 ### 4. Formula Hadiah Kemenangan
-- **Perolehan EXP**: $\text{EXP} = \left\lfloor 50 \times 1.18^{\text{Level}_{\text{musuh}}} \times (1 + \text{BonusEXP}) \right\rfloor$
-- **Perolehan Emas**: $\text{Gold} = \left\lfloor 25 \times 1.15^{\text{Level}_{\text{musuh}}} \times \text{Varians} \right\rfloor$
+
+- **EXP**: ⌊50 × 1,18⁽Level musuh⁾ × (1 + Bonus EXP)⌋.
+- **Emas**: ⌊25 × 1,15⁽Level musuh⁾ × Varians⌋.
+
+Satu sesi arena sekarang berlangsung **minimal 5 ronde**. Kalau monster pertama kalah terlalu cepat, gelombang berikutnya masuk sebelum hadiah kemenangan diberikan.
 
 ---
 
@@ -219,7 +226,7 @@ Eduquest/
 ├── lib/
 │   ├── db/
 │   │   ├── dexie.ts               # Setup IndexedDB Dexie.js (Offline)
-│   │   └── vercel-kv.ts           # Setup Redis Vercel KV (Cloud)
+│   │   └── vercel-kv.ts           # Adapter Upstash Redis (nama file lama dipertahankan)
 │   ├── ai/
 │   │   └── gemini.ts              # Integrasi SDK Google Gemini AI
 │   ├── game/
@@ -228,7 +235,9 @@ Eduquest/
 │   │   ├── item-database.ts       # Database 15+ Item RPG
 │   │   ├── enemies-database.ts    # Database Monster 5 Mapel
 │   │   ├── achievements-database.ts # Database 13 Prestasi
-│   │   └── question-bank.ts       # Bank Soal Kurikulum SMP Bawaan
+│   │   ├── curriculum.ts           # Subbab per mapel dan kelas
+│   │   ├── question-format.ts      # Format matematika & acak opsi
+│   │   └── question-bank.ts        # Bank Soal Kurikulum SMP Bawaan
 │   ├── auth.ts                    # Konfigurasi NextAuth Options
 │   └── utils.ts                   # Helper Klas, Format, & Web Audio
 ├── store/
@@ -261,7 +270,7 @@ Sebelum menginstal dan menjalankan Eduquest RPG di komputer Anda, pastikan telah
 1. **Node.js**: Versi `18.17.0` atau yang lebih baru (disarankan `Node.js 20 LTS` atau `22 LTS`).
 2. **npm** (`v9+`), **yarn**, atau **pnpm**.
 3. **Google Gemini API Key** (Opsional, gratis didapatkan di [Google AI Studio](https://aistudio.google.com/)). Game tetap dapat dimainkan 100% menggunakan Bank Soal lokal jika API Key tidak diisi.
-4. **Vercel Account & Upstash Redis / Vercel KV** (Opsional untuk sinkronisasi cloud antar perangkat).
+4. **Akun Vercel & Upstash Redis** (Opsional untuk sinkronisasi cloud antarperangkat).
 
 ---
 
@@ -319,9 +328,11 @@ npm start
 | `NEXTAUTH_URL` | URL domain aplikasi utama | Wajib | `http://localhost:3000` atau `https://nama-proyek.vercel.app` |
 | `NEXTAUTH_SECRET` | Kunci rahasia enkripsi token JWT | Wajib | String acak 32 karakter (`openssl rand -base64 32`) |
 | `GEMINI_API_KEY` | API Key Google Gemini AI | Opsional (fallback lokal) | `AQ....` (auth key baru) atau `AIza...` dari AI Studio |
-| `GEMINI_MODEL` | Override model Gemini | Opsional | `gemini-3.7-flash` (default, gratis / bukan Pro) |
-| `KV_REST_API_URL` | Endpoint REST Redis Vercel KV | Opsional (fallback IndexedDB) | `https://region.upstash.io` |
-| `KV_REST_API_TOKEN` | Token otorisasi Redis Vercel KV | Opsional | `AXXX...` |
+| `GEMINI_MODEL` | Override model Gemini | Opsional | `gemini-3.7-flash` (default, gunakan model Flash yang tersedia) |
+| `UPSTASH_REDIS_REST_URL` | Endpoint REST Upstash Redis | Opsional (fallback IndexedDB) | `https://region.upstash.io` |
+| `UPSTASH_REDIS_REST_TOKEN` | Token REST Upstash Redis | Opsional | `AXXX...` |
+| `KV_REST_API_URL` | Nama env lama dari integrasi Vercel | Opsional (tetap didukung) | `https://region.upstash.io` |
+| `KV_REST_API_TOKEN` | Token env lama dari integrasi Vercel | Opsional (tetap didukung) | `AXXX...` |
 | `GOOGLE_CLIENT_ID` | Client ID Google OAuth | Opsional | `xxx.apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_SECRET`| Client Secret Google OAuth | Opsional | `GOCSPX-xxx` |
 
@@ -351,10 +362,10 @@ Eduquest RPG dirancang dengan arsitektur *zero-config* yang dioptimalkan untuk p
                            │
              ┌─────────────┴─────────────┐
              ▼                           ▼
-      [ MASUK / TAMU ]             [ ARENA BATTLE ]
+      [ MASUK / DAFTAR ]           [ ARENA BATTLE ]
              │                           │
-   Pilih Karakter/Akun          Pilih Kelas (7,8,9)
-             │                  Pilih Mata Pelajaran
+        Buat akun resmi          Pilih Kelas (7,8,9)
+             │                  Pilih Mapel & Subbab
              ▼                           │
    [ TAS & PERLENGKAPAN ]                ▼
    - Gunakan Ramuan HP             [ COMBAT ARENA ]
@@ -370,11 +381,12 @@ Eduquest RPG dirancang dengan arsitektur *zero-config* yang dioptimalkan untuk p
 ```
 
 1. **Memulai Petualangan**: Buka beranda, klik *"Mulai Bertempur Sekarang"*.
-2. **Memilih Arena**: Tentukan tingkat kelasmu (Kelas 7, 8, atau 9 SMP) dan pilih mata pelajaran yang ingin dipelajari (misal: Matematika).
-3. **Menghadapi Monster**: Baca soal dengan cermat, pilih satu dari empat opsi jawaban (A, B, C, D), lalu klik *"Lancarkan Jawaban"*.
-4. **Memanfaatkan Item Bantuan**: Jika menghadapi soal sulit, buka kantong item cepat untuk menggunakan *Gulungan Petunjuk AI* (mengeliminasi 2 opsi salah) atau *Serbuk Fokus* (+35% Damage).
-5. **Meningkatkan Karakter**: Setelah menang dan naik level, buka menu *Rapor & Prestasi* untuk mengalokasikan poin atribut ke Kekuatan (STR) atau Ketahanan (VIT).
-6. **Membeli Senjata Baru**: Kumpulkan keping emas dan kunjungi *Toko Perlengkapan* untuk membeli senjata seperti *Pedang Pena Baja* atau *Tongkat Kalkulus*.
+2. **Memilih Arena**: Tentukan kelas (7, 8, atau 9), mapel, lalu pilih salah satu dari 5 subbab atau mode acak.
+3. **Menghadapi Monster**: Baca soal, pilih satu dari empat opsi (A, B, C, D), lalu klik *"Lancarkan Jawaban"*. Posisi jawaban benar diacak agar tidak terus berada di huruf yang sama.
+4. **Menjalani Sesi**: Satu sesi berlangsung minimal 5 ronde. Kalau monster kalah lebih cepat, monster berikutnya masuk dan soal terus berlanjut.
+5. **Memanfaatkan Item Bantuan**: Jika menghadapi soal sulit, buka kantong item cepat untuk menggunakan *Gulungan Petunjuk AI* (mengeliminasi 2 opsi salah) atau *Serbuk Fokus* (+35% Damage).
+6. **Meningkatkan Karakter**: Setelah menang dan naik level, buka menu *Rapor & Prestasi* untuk mengalokasikan poin atribut ke Kekuatan (STR) atau Ketahanan (VIT).
+7. **Membeli Senjata Baru**: Kumpulkan keping emas dan kunjungi *Toko Perlengkapan* untuk membeli senjata seperti *Pedang Pena Baja* atau *Tongkat Kalkulus*.
 
 ---
 

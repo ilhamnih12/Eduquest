@@ -7,6 +7,7 @@ import { StudyTipsResponse } from '@/types/ai';
 import { getSubjectMeta, formatGold } from '@/lib/utils';
 import { calculateEffectiveStats } from '@/lib/game/level-calculator';
 import { getItemById } from '@/lib/game/item-database';
+import { formatMathText } from '@/lib/game/question-format';
 import { ProgressBar } from './ProgressBar';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -382,7 +383,7 @@ export function StatsOverview() {
                 {aiStudyTips.title}
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                {aiStudyTips.summary}
+                {formatMathText(aiStudyTips.summary)}
               </p>
             </div>
 
@@ -400,7 +401,7 @@ export function StatsOverview() {
                     <span className="font-bold text-edu-accentLight dark:text-edu-accentDark block mb-1">
                       Tips #{idx + 1}
                     </span>
-                    {tip}
+                    {formatMathText(tip)}
                   </div>
                 ))}
               </div>
@@ -408,7 +409,7 @@ export function StatsOverview() {
 
             {/* Motivational Quote */}
             <div className="p-3.5 rounded-2xl bg-edu-accentLight/10 dark:bg-edu-accentDark/10 border border-edu-accentLight/20 text-xs italic text-edu-accentLight dark:text-edu-accentDark text-center font-semibold">
-              &quot;{aiStudyTips.motivationalQuote}&quot;
+              &quot;{formatMathText(aiStudyTips.motivationalQuote)}&quot;
             </div>
           </div>
         ) : null}

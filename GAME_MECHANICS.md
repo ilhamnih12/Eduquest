@@ -29,15 +29,19 @@ Dokumen ini menjelaskan secara terperinci seluruh aturan permainan, sistem perhi
   - Multiplier Damage Naik      - Evaluasi Pembahasan  │
         │                             │                │
         ▼                             ▼                │
- [ CEK HP MONSTER <= 0 ? ]     [ CEK HP KARAKTER <= 0 ? ]
-        │                             │
-   ┌────┴──────────────┐         ┌────┴──────────────┐
-   │ Ya                │ Tidak   │ Ya                │ Tidak
-   ▼                   │         ▼                   │
-( KEMENANGAN / WIN )   │       ( KEKALAHAN / LOSS )  │
- - Raih EXP & Naik Level         - HP Pulih ke 20%   │
- - Raih Keping Emas              - Evaluasi Materi   │
- - Roll Item Loot Drop                 │             │
+ [ CEK HP MONSTER <= 0 DAN RONDE MINIMAL? ] [ CEK HP KARAKTER <= 0 ? ]
+        │                                      │
+   ┌────┴──────────────┐                  ┌────┴──────────────┐
+   │ Ya                │ Belum            │ Ya                │ Tidak
+   ▼                   │                  ▼                   │
+( KEMENANGAN / WIN )   │             ( KEKALAHAN / LOSS )      │
+ - Raih EXP & Naik Level│              - HP Pulih ke 20%         │
+ - Raih Keping Emas     │              - Evaluasi Materi         │
+ - Roll Item Loot Drop  │                                        │
+                       ▼                                        │
+              ( GELOMBANG BERIKUTNYA )                          │
+              - Monster baru muncul                             │
+              - Lanjutkan soal sampai minimal 5 ronde            │
         │                              │             │
         └──────────────┬───────────────┘             │
                        │                             │
@@ -55,7 +59,7 @@ Dokumen ini menjelaskan secara terperinci seluruh aturan permainan, sistem perhi
 ## ⚔️ 2. Sistem Pertarungan & Formula Kerusakan
 
 ### A. Tindakan Ronde (Turn Actions)
-Setiap ronde, pemain disajikan sebuah pertanyaan pilihan ganda 4 opsi.
+Setiap ronde, pemain disajikan sebuah pertanyaan pilihan ganda 4 opsi. Satu sesi arena berlangsung **minimal 5 ronde**; kalau satu monster kalah sebelum itu, gelombang monster berikutnya langsung muncul. Hadiah baru diberikan setelah sesi selesai.
 1. **Menjawab Benar**: Pemain melancarkan serangan (*attack action*). Nilai kerusakan dihitung berdasarkan Atribut Karakter, Senjata, Level, Multiplier Combo Streak, dan Peluang Serangan Kritis (*Critical Hit*).
 2. **Menjawab Salah**: Monster melancarkan serangan balasan (*counter-attack*). Nilai kerusakan dikurangi oleh Pertahanan (*Defense*) dan Zirah pemain.
 3. **Penggunaan Item Bantuan**: Pemain dapat meminum ramuan atau memakai jimat pendukung sebelum menjawab soal:
@@ -65,22 +69,20 @@ Setiap ronde, pemain disajikan sebuah pertanyaan pilihan ganda 4 opsi.
    - *Gulungan Petunjuk AI*: Mengeliminasi 2 opsi jawaban salah sehingga tersisa 2 pilihan.
 
 ### B. Rumus Kerusakan Pemain (Player Damage Formula)
-$$\text{BaseDamage} = \text{EffectiveAttack} \times (1 + \text{PlayerLevel} \times 0.08) \times \text{Varians}(0.9 - 1.1)$$
 
-$$\text{StreakMultiplier} = \min(2.0, 1.0 + \text{StreakCount} \times 0.15)$$
-
-$$\text{CriticalMultiplier} = \begin{cases} 1.75 & \text{jika } \text{Roll}(0-100) < \text{CritRate}\% \\ 1.0 & \text{lainnya} \end{cases}$$
-
-$$\text{DefenseMitigation} = 1 - \left( \frac{\text{EnemyDefense}}{\text{EnemyDefense} + 50} \right)$$
-
-$$\text{FinalPlayerDamage} = \max(8, \lfloor \text{BaseDamage} \times \text{StreakMultiplier} \times \text{BuffMultiplier} \times \text{CriticalMultiplier} \times \text{DefenseMitigation} \rfloor)$$
+- **BaseDamage** = Atk efektif × (1 + Level pemain × 0,08) × Varians (0,9–1,1)
+- **StreakMultiplier** = nilai terkecil antara 2,0 dan 1,0 + (Streak × 0,15)
+- **CriticalMultiplier** = 1,75× jika hasil acak 0–100 lebih kecil dari peluang kritis; selain itu 1,0×.
+- **Pengurangan oleh pertahanan** = 1 − (Pertahanan musuh ÷ (Pertahanan musuh + 50))
+- **Damage akhir pemain** = nilai terbesar antara 8 dan pembulatan ke bawah dari BaseDamage × semua pengali × pengurangan pertahanan.
 
 ### C. Rumus Kerusakan Musuh (Enemy Damage Formula)
-$$\text{RawEnemyDamage} = \text{EnemyAttack} \times \text{Varians}(0.9 - 1.1)$$
 
-$$\text{PlayerDefenseMitigation} = 1 - \min\left(0.75, \frac{\text{EffectiveDefense} \times \text{BuffDef}}{\text{EffectiveDefense} \times \text{BuffDef} + 60}\right)$$
+- **Damage mentah musuh** = Atk musuh × Varians (0,9–1,1)
+- **Pengurangan oleh pertahanan pemain** = 1 − nilai terkecil antara 0,75 dan (Pertahanan efektif × Buff DEF) ÷ (Pertahanan efektif × Buff DEF + 60)
+- **Damage akhir musuh** = nilai terbesar antara 5 dan pembulatan ke bawah dari damage mentah × pengurangan pertahanan pemain.
 
-$$\text{FinalEnemyDamage} = \max(5, \lfloor \text{RawEnemyDamage} \times \text{PlayerDefenseMitigation} \rfloor)$$
+Satu sesi arena berlangsung **minimal 5 ronde**. Jika satu monster kalah sebelum batas itu, gelombang monster lain muncul dan pertarungan berlanjut. Hadiah kemenangan baru muncul setelah batas minimum terlewati dan monster pada ronde tersebut dikalahkan.
 
 ---
 
@@ -88,7 +90,8 @@ $$\text{FinalEnemyDamage} = \max(5, \lfloor \text{RawEnemyDamage} \times \text{P
 
 ### A. Kurva Kebutuhan EXP
 Karakter membutuhkan EXP yang meningkat secara eksponensial setiap levelnya:
-$$\text{RequiredEXP}(L) = \lfloor 100 \times 1.22^{(L-1)} + (L-1) \times 35 \rfloor$$
+
+EXP yang dibutuhkan = ⌊100 × 1,22⁽Level − 1⁾ + (Level − 1) × 35⌋
 
 | Level | Kebutuhan EXP | Gelar Karakter |
 |---|---|---|
@@ -105,13 +108,13 @@ $$\text{RequiredEXP}(L) = \lfloor 100 \times 1.22^{(L-1)} + (L-1) \times 35 \rfl
 Setiap naik level, karakter memperoleh **+3 Poin Atribut Bebas** yang dapat dialokasikan ke 4 status utama:
 
 1. **Strength / Kekuatan (STR)**:
-   - Setiap +1 STR memberikan $+2.5$ Serangan dasar.
+   - Setiap +1 STR memberikan +2.5 Serangan dasar.
 2. **Vitality / Ketahanan (VIT)**:
-   - Setiap +1 VIT memberikan $+12$ Max HP dan $+1.5$ Pertahanan dasar.
+   - Setiap +1 VIT memberikan +12 Max HP dan +1.5 Pertahanan dasar.
 3. **Intelligence / Kecerdasan (INT)**:
-   - Meningkatkan ketajaman logika dan $+0.4\%$ Peluang Serangan Kritis.
+   - Meningkatkan ketajaman logika dan +0.4% Peluang Serangan Kritis.
 4. **Agility / Ketangkasan (AGI)**:
-   - Meningkatkan kecepatan refleks dan $+0.6\%$ Peluang Serangan Kritis.
+   - Meningkatkan kecepatan refleks dan +0.6% Peluang Serangan Kritis.
 
 ---
 
@@ -119,21 +122,21 @@ Setiap naik level, karakter memperoleh **+3 Poin Atribut Bebas** yang dapat dial
 
 | ID Item | Nama Item | Kategori | Kelangkaan | Efek Status | Harga Beli | Harga Jual |
 |---|---|---|---|---|---|---|
-| `potion_hp_small` | Ramuan Pemulih Kecil | Konsumsi | Biasa | $+35$ HP | 25 Emas | 12 Emas |
-| `potion_hp_medium` | Ramuan Pemulih Sedang | Konsumsi | Istimewa | $+80$ HP | 60 Emas | 30 Emas |
-| `potion_hp_large` | Ramuan Pemulih Besar | Konsumsi | Langka | $+160$ HP | 120 Emas | 60 Emas |
-| `potion_elixir` | Elixir Cendekiawan | Konsumsi | Epik | Pulih $100\%$ Max HP | 250 Emas | 125 Emas |
-| `buff_attack` | Serbuk Fokus Belajar | Booster | Istimewa | $+35\%$ ATK (3 Ronde) | 45 Emas | 22 Emas |
-| `buff_defense` | Perisai Konsentrasi | Booster | Istimewa | $+45\%$ DEF (3 Ronde) | 40 Emas | 20 Emas |
+| `potion_hp_small` | Ramuan Pemulih Kecil | Konsumsi | Biasa | +35 HP | 25 Emas | 12 Emas |
+| `potion_hp_medium` | Ramuan Pemulih Sedang | Konsumsi | Istimewa | +80 HP | 60 Emas | 30 Emas |
+| `potion_hp_large` | Ramuan Pemulih Besar | Konsumsi | Langka | +160 HP | 120 Emas | 60 Emas |
+| `potion_elixir` | Elixir Cendekiawan | Konsumsi | Epik | Pulih 100% Max HP | 250 Emas | 125 Emas |
+| `buff_attack` | Serbuk Fokus Belajar | Booster | Istimewa | +35% ATK (3 Ronde) | 45 Emas | 22 Emas |
+| `buff_defense` | Perisai Konsentrasi | Booster | Istimewa | +45% DEF (3 Ronde) | 40 Emas | 20 Emas |
 | `scroll_hint` | Gulungan Petunjuk AI | Spesial | Langka | Eliminasi 2 Opsi Salah | 50 Emas | 25 Emas |
-| `stone_revival` | Batu Kebangkitan | Spesial | Epik | Hidup Kembali $50\%$ HP | 180 Emas | 90 Emas |
-| `talisman_exp` | Jimat Cendekiawan | Booster | Langka | $+50\%$ Bonus EXP | 75 Emas | 35 Emas |
-| `weapon_wooden_ruler` | Penggaris Kayu Pemula | Senjata | Biasa | $+12$ ATK, $+2\%$ Crit | 90 Emas | 45 Emas |
-| `weapon_pen_blade` | Pedang Pena Baja | Senjata | Langka | $+28$ ATK, $+6\%$ Crit | 320 Emas | 160 Emas |
-| `weapon_calculus_staff`| Tongkat Kalkulus Ajaib | Senjata | Legendaris | $+55$ ATK, $+15\%$ Crit | 750 Emas | 375 Emas |
-| `armor_school_vest` | Rompi Seragam Pramuka | Zirah | Biasa | $+8$ DEF, $+25$ Max HP | 80 Emas | 40 Emas |
-| `armor_lab_coat` | Jas Baja Laboratorium | Zirah | Langka | $+22$ DEF, $+65$ Max HP | 290 Emas | 145 Emas |
-| `armor_archmage_robe` | Jubah Mahaguru Nusantara| Zirah | Legendaris | $+45$ DEF, $+140$ Max HP| 800 Emas | 400 Emas |
+| `stone_revival` | Batu Kebangkitan | Spesial | Epik | Hidup Kembali 50% HP | 180 Emas | 90 Emas |
+| `talisman_exp` | Jimat Cendekiawan | Booster | Langka | +50% Bonus EXP | 75 Emas | 35 Emas |
+| `weapon_wooden_ruler` | Penggaris Kayu Pemula | Senjata | Biasa | +12 ATK, +2% Crit | 90 Emas | 45 Emas |
+| `weapon_pen_blade` | Pedang Pena Baja | Senjata | Langka | +28 ATK, +6% Crit | 320 Emas | 160 Emas |
+| `weapon_calculus_staff`| Tongkat Kalkulus Ajaib | Senjata | Legendaris | +55 ATK, +15% Crit | 750 Emas | 375 Emas |
+| `armor_school_vest` | Rompi Seragam Pramuka | Zirah | Biasa | +8 DEF, +25 Max HP | 80 Emas | 40 Emas |
+| `armor_lab_coat` | Jas Baja Laboratorium | Zirah | Langka | +22 DEF, +65 Max HP | 290 Emas | 145 Emas |
+| `armor_archmage_robe` | Jubah Mahaguru Nusantara| Zirah | Legendaris | +45 DEF, +140 Max HP| 800 Emas | 400 Emas |
 
 ---
 

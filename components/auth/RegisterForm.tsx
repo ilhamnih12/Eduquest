@@ -2,9 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { useGameStore } from '@/store/gameStore';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -13,8 +11,6 @@ import { Badge } from '@/components/ui/Badge';
 import { UserPlus, Sparkles, Gift, CheckCircle2 } from 'lucide-react';
 
 export function RegisterForm() {
-  const router = useRouter();
-  const { initGame } = useGameStore();
   const { setUser } = useAuthStore();
 
   const [username, setUsername] = React.useState('');
@@ -29,7 +25,7 @@ export function RegisterForm() {
     setError(null);
 
     if (password !== confirmPassword) {
-      setError('Konfirmasi kata sandi tidak cocok.');
+      setError('Konfirmasi kata sandinya belum sama.');
       return;
     }
 
@@ -41,11 +37,13 @@ export function RegisterForm() {
     setIsLoading(true);
 
     try {
-      // Call register API
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanUsername = username.trim();
+
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({ username: cleanUsername, email: cleanEmail, password }),
       });
 
       const data = await res.json();
@@ -54,41 +52,32 @@ export function RegisterForm() {
         throw new Error(data.message || 'Pendaftaran akun gagal.');
       }
 
-      // Auto login after registration
+      // Langsung masuk setelah akun dibuat. `redirect: false` dipakai agar error
+      // tetap bisa ditampilkan di form, lalu navigasi penuh dilakukan setelah cookie
+      // sesi berhasil dibuat sehingga pengguna tidak perlu me-refresh sendiri.
       const signInRes = await signIn('credentials', {
         redirect: false,
-        email,
+        callbackUrl: '/',
+        email: cleanEmail,
         password,
       });
 
       if (signInRes?.error) {
         throw new Error(
-          'Pendaftaran berhasil, namun login otomatis gagal. Silakan masuk manual di halaman Masuk.'
+          'Pendaftaran berhasil, tetapi login otomatis gagal. Silakan masuk manual.'
         );
       }
 
-      // Simpan data pengguna ke auth store (wajib login, tanpa mode tamu)
       setUser({
-        id: data?.user?.id || email,
-        email,
-        username,
+        id: data?.user?.id || cleanEmail,
+        email: cleanEmail,
+        username: cleanUsername,
         provider: 'credentials',
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
       });
 
-      // Siapkan progres lokal — jangan blokir navigasi bila storage lambat/terblokir
-      try {
-        await Promise.race([
-          initGame(email, username),
-          new Promise((resolve) => setTimeout(resolve, 4000)),
-        ]);
-      } catch {
-        // Lanjut navigasi — halaman tujuan akan menyelesaikan inisialisasi sendiri
-      }
-
-      // Arahkan ke halaman utama setelah berhasil mendaftar
-      router.push('/');
+      window.location.replace(signInRes?.url || '/');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan sistem.');
     } finally {

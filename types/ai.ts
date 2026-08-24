@@ -6,6 +6,8 @@ export interface GenerateQuestionRequest {
   difficulty?: 'easy' | 'medium' | 'hard';
   topic?: string;
   previousQuestionIds?: string[];
+  variationSeed?: string;
+  previousQuestionTexts?: string[];
 }
 
 export interface GenerateQuestionResponse {

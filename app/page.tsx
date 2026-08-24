@@ -28,10 +28,10 @@ export default function HomePage() {
   const { user } = useAuthStore();
 
   React.useEffect(() => {
-    if (!isInitialized) {
-      initGame();
+    if (!isInitialized && user) {
+      initGame(user.id, user.username);
     }
-  }, [isInitialized, initGame]);
+  }, [isInitialized, initGame, user]);
 
   const features = [
     {

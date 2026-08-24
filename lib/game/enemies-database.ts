@@ -1,6 +1,6 @@
 import { Enemy, Subject, GradeLevel } from '@/types/game';
 
-export const ENEMY_DATABASE: Enemy[] = [
+const BASE_ENEMY_DATABASE: Enemy[] = [
   // === MATEMATIKA ===
   {
     id: 'mat_slime_rumus',
@@ -342,6 +342,403 @@ export const ENEMY_DATABASE: Enemy[] = [
   },
 ];
 
+interface EnemyVariantConfig {
+  id: string;
+  name: string;
+  title: string;
+  avatar: string;
+  description: string;
+  defeatQuote: string;
+  maxHp?: number;
+  attack?: number;
+  defense?: number;
+}
+
+/**
+ * Tiap kelas punya beberapa penjaga dengan tema yang berbeda. Data dasar lama
+ * tetap dipakai, lalu varian ini membuat pilihan musuh tidak selalu sama saat
+ * pemain menyelesaikan beberapa gelombang dalam satu sesi.
+ */
+const ENEMY_VARIANT_CONFIGS: Record<string, EnemyVariantConfig[]> = {
+  'mat_slime_rumus': [
+    {
+      id: 'mat_golem_bilangan',
+      name: 'Golem Bilangan Bulat',
+      title: 'Penjaga Operasi Hitung',
+      avatar: '🔢',
+      description: 'Golem batu yang menyusun bilangan positif, negatif, dan pecahan menjadi tantangan baru.',
+      defeatQuote: 'Tanda negatifku tak bisa lagi menyembunyikan jawabannya!',
+      maxHp: 92,
+      attack: 13,
+      defense: 5,
+    },
+    {
+      id: 'mat_ranger_perbandingan',
+      name: 'Ranger Skala',
+      title: 'Pemburu Perbandingan Senilai',
+      avatar: '🗺️',
+      description: 'Penjelajah kecil yang mengubah jarak di peta menjadi soal perbandingan sehari-hari.',
+      defeatQuote: 'Skalaku sudah pas dengan strategimu!',
+      maxHp: 104,
+      attack: 14,
+      defense: 4,
+    },
+  ],
+  'mat_golem_pythagoras': [
+    {
+      id: 'mat_sphinx_spldv',
+      name: 'Sphinx Dua Variabel',
+      title: 'Penjaga x dan y',
+      avatar: '🧩',
+      description: 'Sphinx yang menyimpan dua petunjuk dan meminta kamu mencari nilai yang belum diketahui.',
+      defeatQuote: 'Dua variabelku akhirnya kamu pecahkan!',
+      maxHp: 178,
+      attack: 26,
+      defense: 11,
+    },
+    {
+      id: 'mat_wali_lingkaran',
+      name: 'Wali Lingkaran',
+      title: 'Penguasa Jari-Jari',
+      avatar: '⭕',
+      description: 'Penjaga bundar yang menguji keliling, luas, dan hubungan antara diameter dengan jari-jari.',
+      defeatQuote: 'Lingkaranku berputar mengikuti logikamu!',
+      maxHp: 150,
+      attack: 23,
+      defense: 13,
+    },
+  ],
+  'mat_naga_peluang': [
+    {
+      id: 'mat_phantom_kuadrat',
+      name: 'Hantu Persamaan Kuadrat',
+      title: 'Pemburu Akar Persamaan',
+      avatar: '👻',
+      description: 'Hantu yang muncul dari dua akar persamaan dan suka menyamarkan faktornya.',
+      defeatQuote: 'Akar-akarku sudah ditemukan!',
+      maxHp: 300,
+      attack: 40,
+      defense: 20,
+    },
+    {
+      id: 'mat_orakel_transformasi',
+      name: 'Orakel Transformasi',
+      title: 'Pengubah Titik dan Bangun',
+      avatar: '🔄',
+      description: 'Orakel yang memindahkan, mencerminkan, dan memperbesar bangun di bidang koordinat.',
+      defeatQuote: 'Transformasiku berubah menjadi pelajaran!',
+      maxHp: 340,
+      attack: 44,
+      defense: 17,
+    },
+  ],
+  'ipa_spora_mikroba': [
+    {
+      id: 'ipa_alchemist_materi',
+      name: 'Alkemis Perubahan Zat',
+      title: 'Pengolah Campuran dan Reaksi',
+      avatar: '⚗️',
+      description: 'Alkemis yang mencampur zat dan menguji apakah perubahan yang terjadi bersifat fisika atau kimia.',
+      defeatQuote: 'Campuranku berubah karena percobaanmu!',
+      maxHp: 82,
+      attack: 12,
+      defense: 4,
+    },
+    {
+      id: 'ipa_penjaga_ekosistem',
+      name: 'Penjaga Rantai Makanan',
+      title: 'Pengatur Keseimbangan Alam',
+      avatar: '🌿',
+      description: 'Penjaga hutan yang menghubungkan produsen, konsumen, dan pengurai dalam satu ekosistem.',
+      defeatQuote: 'Keseimbangan alam kembali terjaga!',
+      maxHp: 96,
+      attack: 13,
+      defense: 5,
+    },
+  ],
+  'ipa_titan_gravitasi': [
+    {
+      id: 'ipa_colossus_tekanan',
+      name: 'Kolossus Tekanan',
+      title: 'Pengendali Gaya pada Permukaan',
+      avatar: '🪨',
+      description: 'Raksasa yang menekan benda padat, cair, dan gas untuk menguji pemahamanmu.',
+      defeatQuote: 'Tekananku kalah oleh perhitunganmu!',
+      maxHp: 205,
+      attack: 30,
+      defense: 13,
+    },
+    {
+      id: 'ipa_druid_tumbuhan',
+      name: 'Druid Jaringan Tumbuhan',
+      title: 'Penjaga Akar dan Daun',
+      avatar: '🌳',
+      description: 'Druid yang menghidupkan jaringan akar, batang, dan daun untuk menguji fungsi tiap bagian.',
+      defeatQuote: 'Jaringanku tumbuh bersama pengetahuanmu!',
+      maxHp: 180,
+      attack: 27,
+      defense: 14,
+    },
+  ],
+  'ipa_cyber_atom': [
+    {
+      id: 'ipa_magnet_colossus',
+      name: 'Kolossus Medan Magnet',
+      title: 'Pengarah Kutub Utara dan Selatan',
+      avatar: '🧲',
+      description: 'Robot raksasa yang memutar garis medan magnet dan elektromagnet.',
+      defeatQuote: 'Kutubku tertarik pada jawaban yang benar!',
+      maxHp: 330,
+      attack: 43,
+      defense: 22,
+    },
+    {
+      id: 'ipa_mutan_genetika',
+      name: 'Mutan Pewarisan Sifat',
+      title: 'Penjaga Gen dan Kromosom',
+      avatar: '🧬',
+      description: 'Makhluk hasil persilangan yang menguji gen dominan, resesif, dan variasi keturunan.',
+      defeatQuote: 'Sifat unggulmu diwariskan ke ronde berikutnya!',
+      maxHp: 370,
+      attack: 47,
+      defense: 19,
+    },
+  ],
+  'ips_bayangan_arkeolog': [
+    {
+      id: 'ips_pemandu_peta',
+      name: 'Pemandu Peta Nusantara',
+      title: 'Pembaca Simbol dan Skala',
+      avatar: '🗺️',
+      description: 'Pemandu perjalanan yang menyembunyikan arah dan jarak di dalam peta.',
+      defeatQuote: 'Arah perjalananmu sudah tepat!',
+      maxHp: 98,
+      attack: 15,
+      defense: 5,
+    },
+    {
+      id: 'ips_ratu_kelangkaan',
+      name: 'Ratu Kelangkaan',
+      title: 'Pengatur Kebutuhan dan Pilihan',
+      avatar: '⚖️',
+      description: 'Ratu pasar yang membuat sumber daya terbatas dan memintamu menentukan pilihan paling masuk akal.',
+      defeatQuote: 'Pilihanmu bijak di tengah kelangkaan!',
+      maxHp: 110,
+      attack: 16,
+      defense: 6,
+    },
+  ],
+  'ips_pendekar_majapahit': [
+    {
+      id: 'ips_laksamana_barat',
+      name: 'Laksamana Jalur Rempah',
+      title: 'Pengawal Kedatangan Bangsa Barat',
+      avatar: '⛵',
+      description: 'Laksamana yang membawa peta pelayaran dan cerita tentang perubahan Nusantara.',
+      defeatQuote: 'Jalur rempah kini kamu pahami!',
+      maxHp: 235,
+      attack: 34,
+      defense: 15,
+    },
+    {
+      id: 'ips_shifter_mobilitas',
+      name: 'Pengubah Status Sosial',
+      title: 'Penjelajah Mobilitas Masyarakat',
+      avatar: '🪜',
+      description: 'Petualang yang berpindah lapisan sosial dan menantangmu membaca faktor pendorongnya.',
+      defeatQuote: 'Langkah sosialmu berhasil naik tingkat!',
+      maxHp: 210,
+      attack: 31,
+      defense: 16,
+    },
+  ],
+  'ips_baron_monopoli': [
+    {
+      id: 'ips_diplomat_global',
+      name: 'Diplomat Kerja Sama Dunia',
+      title: 'Penghubung Antarnegara',
+      avatar: '🌐',
+      description: 'Diplomat yang menguji kerja sama internasional dan peran Indonesia di dunia.',
+      defeatQuote: 'Kerja samamu membuka jalan baru!',
+      maxHp: 330,
+      attack: 42,
+      defense: 18,
+    },
+    {
+      id: 'ips_reformasi_sosial',
+      name: 'Raksasa Perubahan Sosial',
+      title: 'Pengguncang Kebiasaan Lama',
+      avatar: '🏙️',
+      description: 'Raksasa kota yang membawa perubahan teknologi, budaya, dan tantangan pembangunan.',
+      defeatQuote: 'Perubahan kali ini membawa kemajuan!',
+      maxHp: 290,
+      attack: 39,
+      defense: 21,
+    },
+  ],
+  'indo_mimik_kata': [
+    {
+      id: 'indo_narasi_fantasi',
+      name: 'Naga Cerita Fantasi',
+      title: 'Penguasa Tokoh dan Alur',
+      avatar: '🐉',
+      description: 'Naga yang menyusun tokoh, latar, dan kejadian ajaib menjadi cerita yang seru.',
+      defeatQuote: 'Alur ceritaku berakhir dengan pemahamanmu!',
+      maxHp: 94,
+      attack: 14,
+      defense: 5,
+    },
+    {
+      id: 'indo_editor_eyd',
+      name: 'Editor Ejaan',
+      title: 'Penjaga Huruf Kapital',
+      avatar: '✏️',
+      description: 'Editor yang menyisipkan kesalahan ejaan dan tanda baca untuk kamu rapikan.',
+      defeatQuote: 'Kalimatmu sudah rapi dan mudah dibaca!',
+      maxHp: 78,
+      attack: 12,
+      defense: 4,
+    },
+  ],
+  'indo_penyair_majas': [
+    {
+      id: 'indo_jurnalis_berita',
+      name: 'Jurnalis Teks Berita',
+      title: 'Pemburu Fakta dan 5W1H',
+      avatar: '📰',
+      description: 'Jurnalis yang menyamarkan fakta, judul, dan informasi penting di balik sebuah berita.',
+      defeatQuote: 'Beritaku sudah kamu cek faktanya!',
+      maxHp: 215,
+      attack: 31,
+      defense: 13,
+    },
+    {
+      id: 'indo_sphinx_eksposisi',
+      name: 'Sphinx Teks Eksposisi',
+      title: 'Penjaga Tesis dan Argumen',
+      avatar: '🗿',
+      description: 'Sphinx yang meminta alasan, bukti, dan penegasan ulang untuk memperkuat pendapat.',
+      defeatQuote: 'Argumenmu tersusun kuat!',
+      maxHp: 190,
+      attack: 29,
+      defense: 14,
+    },
+  ],
+  'indo_raja_cerpen': [
+    {
+      id: 'indo_orator_persuasif',
+      name: 'Orator Pidato Persuasif',
+      title: 'Penggerak Aksi Positif',
+      avatar: '🎙️',
+      description: 'Orator yang menyusun pembukaan, alasan, dan ajakan agar pendengar mau bertindak.',
+      defeatQuote: 'Ajakanmu terdengar meyakinkan!',
+      maxHp: 355,
+      attack: 45,
+      defense: 20,
+    },
+    {
+      id: 'indo_kritikus_resensi',
+      name: 'Kritikus Resensi Buku',
+      title: 'Penilai Karya Sastra',
+      avatar: '📚',
+      description: 'Kritikus yang menguji ringkasan, kelebihan, kekurangan, dan rekomendasi sebuah karya.',
+      defeatQuote: 'Penilaianmu adil dan beralasan!',
+      maxHp: 325,
+      attack: 42,
+      defense: 22,
+    },
+  ],
+  'eng_sprite_grammar': [
+    {
+      id: 'eng_descriptive_pixie',
+      name: 'Descriptive Pixie',
+      title: 'Keeper of Clear Details',
+      avatar: '🧚',
+      description: 'A bright pixie testing adjectives and simple descriptions of people, places, and things.',
+      defeatQuote: 'Your description is clear and vivid!',
+      maxHp: 96,
+      attack: 15,
+      defense: 5,
+    },
+    {
+      id: 'eng_present_guardian',
+      name: 'Present Tense Guardian',
+      title: 'Watcher of Daily Habits',
+      avatar: '⏰',
+      description: 'A clock guardian checking verbs, routines, and facts in the simple present tense.',
+      defeatQuote: 'Your verb agreement is right on time!',
+      maxHp: 80,
+      attack: 12,
+      defense: 5,
+    },
+  ],
+  'eng_gargoyle_narrative': [
+    {
+      id: 'eng_modal_knight',
+      name: 'Modal Auxiliary Knight',
+      title: 'Guardian of Advice and Ability',
+      avatar: '🛡️',
+      description: 'A knight who asks when to use can, should, must, and may in everyday situations.',
+      defeatQuote: 'Your advice is grammatically sound!',
+      maxHp: 225,
+      attack: 34,
+      defense: 15,
+    },
+    {
+      id: 'eng_recount_witch',
+      name: 'Recount Story Witch',
+      title: 'Keeper of Past Experiences',
+      avatar: '🧙',
+      description: 'A friendly witch mixing time order and past verbs in a personal recount.',
+      defeatQuote: 'Your past-tense story is well ordered!',
+      maxHp: 195,
+      attack: 31,
+      defense: 13,
+    },
+  ],
+  'eng_dragon_vocabulary': [
+    {
+      id: 'eng_report_titan',
+      name: 'Report Text Titan',
+      title: 'Master of General Facts',
+      avatar: '🦕',
+      description: 'A titan testing facts, classification, and the structure of report texts.',
+      defeatQuote: 'Your facts are accurate and well organized!',
+      maxHp: 375,
+      attack: 48,
+      defense: 23,
+    },
+    {
+      id: 'eng_conjunction_dragon',
+      name: 'Purpose Conjunction Dragon',
+      title: 'Keeper of Logical Links',
+      avatar: '🐲',
+      description: 'A dragon connecting ideas with because, although, so that, and in order to.',
+      defeatQuote: 'Your ideas connect perfectly!',
+      maxHp: 345,
+      attack: 44,
+      defense: 21,
+    },
+  ],
+};
+
+const VARIANT_ENEMIES: Enemy[] = Object.entries(ENEMY_VARIANT_CONFIGS).flatMap(([baseId, variants]) => {
+  const base = BASE_ENEMY_DATABASE.find((enemy) => enemy.id === baseId);
+  if (!base) return [];
+
+  return variants.map((variant) => ({
+    ...base,
+    ...variant,
+    hp: variant.maxHp ?? base.maxHp,
+    maxHp: variant.maxHp ?? base.maxHp,
+    attack: variant.attack ?? base.attack,
+    defense: variant.defense ?? base.defense,
+    possibleDrops: base.possibleDrops.map((drop) => ({ ...drop })),
+  }));
+});
+
+export const ENEMY_DATABASE: Enemy[] = [...BASE_ENEMY_DATABASE, ...VARIANT_ENEMIES];
+
 export function getEnemiesBySubject(subject: Subject, grade?: GradeLevel): Enemy[] {
   return ENEMY_DATABASE.filter((enemy) => {
     if (enemy.subject !== subject) return false;
@@ -350,21 +747,26 @@ export function getEnemiesBySubject(subject: Subject, grade?: GradeLevel): Enemy
   });
 }
 
-export function getRandomEnemy(subject: Subject, grade: GradeLevel = 7): Enemy {
+export function getRandomEnemy(subject: Subject, grade: GradeLevel = 7, excludeIds: string[] = []): Enemy {
   const matching = getEnemiesBySubject(subject, grade);
-  if (matching.length > 0) {
-    const selected = matching[Math.floor(Math.random() * matching.length)];
-    // Deep clone to reset HP
+  const available = matching.filter((enemy) => !excludeIds.includes(enemy.id));
+  const pool = available.length > 0 ? available : matching;
+  if (pool.length > 0) {
+    const selected = pool[Math.floor(Math.random() * pool.length)];
+    // Clone so HP from one wave never leaks into another wave.
     return {
       ...selected,
       hp: selected.maxHp,
+      possibleDrops: selected.possibleDrops.map((drop) => ({ ...drop })),
     };
   }
-  // Fallback to any matching subject
-  const anySubject = ENEMY_DATABASE.filter((e) => e.subject === subject);
+
+  // Fallback ke mapel yang sama jika kombinasi kelas belum punya data.
+  const anySubject = ENEMY_DATABASE.filter((enemy) => enemy.subject === subject);
   const picked = anySubject[0] || ENEMY_DATABASE[0];
   return {
     ...picked,
     hp: picked.maxHp,
+    possibleDrops: picked.possibleDrops.map((drop) => ({ ...drop })),
   };
 }

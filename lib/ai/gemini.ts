@@ -1,18 +1,22 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { Subject, GradeLevel, Question } from '@/types/game';
 import { StudyTipsResponse, AiChatMessage, AiChatPlayerContext, AiChatResponse } from '@/types/ai';
 import { getRandomLocalQuestion } from '@/lib/game/question-bank';
+import { formatQuestion } from '@/lib/game/question-format';
+import { getCurriculumTopics } from '@/lib/game/curriculum';
 
 /**
- * Free-tier Flash models on Google AI Studio (no Pro / billing required).
- * Newest first. `gemini-1.5-flash` was shut down and 404s on current keys.
- * Auth keys that start with `AQ.` need the official `@google/genai` SDK
- * (native Gemini endpoint), not the deprecated `@google/generative-ai` package.
+ * Flash models on Google AI Studio, newest first. The list follows the
+ * currently documented stable Flash family and keeps older Flash fallbacks so
+ * an existing API key still works when a newer model is not enabled yet.
+ * The official `@google/genai` SDK is used for the current Gemini API.
  * Docs: https://ai.google.dev/gemini-api/docs/models
  */
 export const GEMINI_FREE_FLASH_MODELS = [
   'gemini-3.7-flash',
+  'gemini-3.6-flash',
   'gemini-3.5-flash',
+  'gemini-3.1-flash-lite',
   'gemini-2.5-flash',
 ] as const;
 
@@ -82,8 +86,11 @@ export async function generateGeminiText(
         maxOutputTokens: config.maxOutputTokens,
         responseMimeType: config.responseMimeType,
         systemInstruction: config.systemInstruction,
-        // Keep Flash cheap/fast on the free tier; 3.x Flash thinks by default.
-        thinkingConfig: { thinkingBudget: 0 },
+        // Gemini 3 memakai thinkingLevel (0 bukan level yang valid untuk model
+        // terbaru). Model 2.5 tetap memakai budget 0 sebagai fallback hemat.
+        thinkingConfig: model.startsWith('gemini-3')
+          ? { thinkingLevel: ThinkingLevel.LOW }
+          : { thinkingBudget: 0 },
       },
       {
         temperature: config.temperature,
@@ -131,12 +138,14 @@ export async function generateAiQuestion(
   grade: GradeLevel = 7,
   difficulty: 'easy' | 'medium' | 'hard' = 'medium',
   topic?: string,
-  excludeIds: string[] = []
+  excludeIds: string[] = [],
+  variationSeed?: string,
+  previousQuestionTexts: string[] = []
 ): Promise<Question> {
   const apiKey = resolveGeminiApiKey();
 
   if (!apiKey) {
-    return getRandomLocalQuestion(subject, grade, excludeIds);
+    return getRandomLocalQuestion(subject, grade, excludeIds, topic);
   }
 
   try {
@@ -148,30 +157,37 @@ export async function generateAiQuestion(
       inggris: 'Bahasa Inggris (Grammar, Tenses, Reading Comprehension, Vocabulary, Descriptive/Narrative Text)',
     };
 
-    const prompt = `Anda adalah seorang Guru Ahli Kurikulum Merdeka SMP Indonesia.
-Buat 1 soal pilihan ganda baru yang berkualitas untuk mata pelajaran ${subjectNames[subject]} tingkat SMP Kelas ${grade} dengan tingkat kesulitan "${difficulty}"${topic ? ` pada topik "${topic}"` : ''}.
+    const topicChoices = getCurriculumTopics(subject, grade).map((item) => item.name).join(', ');
+    const promptVariationSeed = variationSeed || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const previousQuestionsHint = previousQuestionTexts.length > 0
+      ? previousQuestionTexts.map((text, index) => `${index + 1}. ${text}`).join('\n')
+      : 'Belum ada soal sebelumnya.';
+    const prompt = `Anda adalah guru SMP Indonesia yang ramah dan mengikuti Kurikulum Merdeka Fase D.
+Buat 1 soal pilihan ganda baru untuk ${subjectNames[subject]} kelas ${grade} dengan tingkat kesulitan "${difficulty}"${topic ? ` dan subbab wajib "${topic}"` : ''}.
+
+Daftar subbab yang boleh dipakai: ${topicChoices || 'materi inti kelas ini'}.
+Gunakan seed variasi ${promptVariationSeed}. Seed ini hanya untuk membantu memilih konteks yang berbeda.
+Soal yang baru dibuat jangan mengulang inti, angka, atau konteks dari soal terakhir berikut:
+${previousQuestionsHint}
 
 Syarat wajib:
-1. Bahasa Indonesia yang baik, benar, dan edukatif (untuk Bahasa Inggris, soal & opsi dalam Bahasa Inggris, penjelasan dalam Bahasa Indonesia).
-2. Tepat sesuai kurikulum SMP Kelas ${grade}.
-3. Tepat 4 pilihan jawaban yang masuk akal.
-4. Tentukan indeks jawaban benar (0 untuk opsi pertama, 1 untuk kedua, 2 untuk ketiga, 3 untuk keempat).
-5. Berikan penjelasan edukatif yang mendalam mengapa jawaban tersebut benar.
-6. Berikan petunjuk singkat (hint) tanpa langsung memberi tahu jawabannya.
+1. Soal harus benar-benar berbeda dari latihan hafalan umum: variasikan konteks, angka, tokoh, situasi, atau cara berpikir. Jangan menyalin contoh yang sering dipakai.
+2. Gunakan bahasa yang jelas, hangat, dan tidak terlalu baku. Panggil siswa dengan "kamu" bila perlu. Tetap sopan dan layak dibaca guru; hindari kalimat kaku seperti "berapakah" bila "berapa" sudah cukup.
+3. Tepat sesuai materi SMP kelas ${grade}. Untuk Bahasa Inggris, soal dan opsi boleh dalam Bahasa Inggris, tetapi penjelasan dan petunjuk tetap dalam Bahasa Indonesia yang mudah dipahami.
+4. Berikan tepat 4 pilihan jawaban yang masuk akal. Hanya satu jawaban yang benar.
+5. correctAnswer adalah indeks jawaban asli: 0 untuk opsi pertama sampai 3 untuk opsi keempat.
+6. Penjelasan cukup singkat tetapi membantu, dengan langkah yang mudah diikuti.
+7. Petunjuk jangan langsung membocorkan jawaban.
+8. Untuk matematika atau perhitungan IPA, WAJIB gunakan teks biasa: gunakan × untuk kali, ÷ untuk bagi, → untuk langkah, dan pangkat Unicode seperti x². Jangan gunakan tanda dolar, LaTeX, caret seperti x^2, atau garis miring sebagai tanda pembagian.
 
-Format Output WAJIB berupa JSON murni dengan struktur berikut:
+Format output WAJIB JSON murni:
 {
-  "topic": "nama topik singkat",
+  "topic": "nama subbab singkat",
   "difficulty": "${difficulty}",
   "question": "teks pertanyaan yang jelas",
-  "options": [
-    "Pilihan A",
-    "Pilihan B",
-    "Pilihan C",
-    "Pilihan D"
-  ],
+  "options": ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D"],
   "correctAnswer": 0,
-  "explanation": "penjelasan lengkap langkah demi langkah",
+  "explanation": "penjelasan langkah demi langkah dengan bahasa ringan",
   "hint": "petunjuk ringkas untuk siswa"
 }`;
 
@@ -200,20 +216,20 @@ Format Output WAJIB berupa JSON murni dengan struktur berikut:
       id: `ai-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       subject,
       grade,
-      topic: parsed.topic || 'Edukasi SMP',
-      difficulty: (parsed.difficulty as 'easy' | 'medium' | 'hard') || difficulty,
-      question: parsed.question,
-      options: parsed.options,
+      topic: topic || (typeof parsed.topic === 'string' && parsed.topic.trim() ? parsed.topic.trim() : 'Edukasi SMP'),
+      difficulty: ['easy', 'medium', 'hard'].includes(parsed.difficulty) ? parsed.difficulty : difficulty,
+      question: String(parsed.question),
+      options: parsed.options.map((option: unknown) => String(option)),
       correctAnswer: Math.max(0, Math.min(3, Math.floor(parsed.correctAnswer))),
-      explanation: parsed.explanation || 'Jawaban telah diverifikasi sesuai kunci kurikulum SMP.',
-      hint: parsed.hint || 'Pikirkan konsep dasar materi ini.',
+      explanation: String(parsed.explanation || 'Jawaban telah diverifikasi sesuai kunci kurikulum SMP.'),
+      hint: String(parsed.hint || 'Pikirkan konsep dasar materi ini.'),
       source: 'gemini',
     };
 
-    return generatedQuestion;
+    return formatQuestion(generatedQuestion);
   } catch (error) {
     console.warn('Gemini API question generation failed, gracefully falling back to local question bank:', error);
-    return getRandomLocalQuestion(subject, grade, excludeIds);
+    return getRandomLocalQuestion(subject, grade, excludeIds, topic);
   }
 }
 
@@ -237,17 +253,17 @@ Siswa memiliki statistik performa mata pelajaran "${subject}":
 - Total Soal Dikerjakan: ${totalAnswered}
 - Akurasi / Tingkat Ketepatan: ${accuracyPercent}%
 
-Buat rekomendasi belajar pribadi dalam format JSON:
+Buat rekomendasi belajar pribadi dalam Bahasa Indonesia yang hangat, ringan, dan tidak kaku. Panggil siswa dengan “kamu” dan berikan saran yang bisa langsung dicoba. Tulis dalam format JSON:
 {
-  "title": "Judul Saran Menarik & Memotivasi",
+  "title": "Judul saran yang menarik",
   "summary": "Analisis singkat perkembangan belajar siswa dalam 2 kalimat",
   "tips": [
-    "Tips 1 yang praktis",
-    "Tips 2 strategi belajar",
-    "Tips 3 trik menjawab soal"
+    "Tips praktis 1",
+    "Strategi belajar 2",
+    "Trik menjawab soal 3"
   ],
   "recommendedTopics": ["Topik 1", "Topik 2", "Topik 3"],
-  "motivationalQuote": "Kutipan penyemangat khas petualang cendekiawan"
+  "motivationalQuote": "Kutipan penyemangat yang singkat"
 }`;
 
     const responseText = await generateGeminiText(apiKey, prompt, {
@@ -326,8 +342,8 @@ function generateLocalStudyTips(
       title: `Semangat Terus Menaklukkan ${name}! 🛡️`,
       summary: `Akurasi kamu saat ini ${accuracy}%. Jangan berkecil hati, setiap pahlawan hebat memulai dari nol!`,
       tips: [
-        'Baca rangkuman materi dan perhatikan penjelasan jawaban di akhir pertarungan.',
-        'Beli Ramuan HP di Toko agar karaktermumu tidak cepat tumbang saat mencoba menjawab.',
+        'Baca rangkuman materi dan cek lagi pembahasan jawaban di akhir pertarungan.',
+        'Beli Ramuan HP di Toko supaya karaktermu tidak cepat tumbang saat menjawab.',
         'Fokus pada soal-soal tingkat Kelas 7 terlebih dahulu sebelum menantang bos Kelas 9.',
       ],
       recommendedTopics: ['Rangkuman Dasar', 'Kosakata Kunci & Definisi'],
@@ -371,14 +387,14 @@ function buildTutorSystemPrompt(context?: AiChatPlayerContext): string {
   return `Kamu adalah "Guru AI Eduquest" — guru pembimbing virtual yang ramah dan menyenangkan di game RPG edukasi Eduquest untuk siswa SMP Indonesia (Kelas 7-9, Kurikulum Merdeka).${playerLine}
 
 ATURAN MENJAWAB:
-1. Jawab selalu dalam Bahasa Indonesia yang santun, hangat, dan mudah dipahami remaja 12-15 tahun (kecuali siswa bertanya dalam Bahasa Inggris, maka jawab dalam Bahasa Inggris).
-2. Fokus membantu materi pelajaran: Matematika, IPA, IPS, Bahasa Indonesia, dan Bahasa Inggris, serta strategi belajar dan tips bermain Eduquest.
-3. Untuk soal matematika: tunjukkan langkah pengerjaan secara bertahap, bukan hanya hasil akhirnya.
-4. Jawaban ringkas dan padat (maksimal sekitar 150 kata). Gunakan bullet/emoji secukupnya agar menyenangkan.
-5. Sesekali gunakan gaya petualangan RPG (pahlawan, monster, quest) untuk memotivasi, tapi tetap edukatif.
-6. Jika pertanyaan di luar topik pendidikan, arahkan dengan halus kembali ke belajar.
-7. JANGAN pernah memberikan konten tidak pantas, kata-kata kasar, atau jawaban yang menyesatkan.
-8. Jangan mengaku sebagai manusia — kamu adalah AI yang siap membantu.`;
+1. Jawab dalam Bahasa Indonesia yang santun, hangat, dan gampang dipahami remaja 12–15 tahun (kecuali siswa bertanya dalam Bahasa Inggris, maka jawab dalam Bahasa Inggris).
+2. Pakai gaya ngobrol yang wajar, tidak kaku dan tidak terlalu baku. Gunakan “kamu” seperlunya, tetapi tetap sopan dan pantas dibaca guru.
+3. Fokus membantu Matematika, IPA, IPS, Bahasa Indonesia, Bahasa Inggris, strategi belajar, dan tips bermain Eduquest.
+4. Untuk matematika: jelaskan langkahnya, bukan hanya hasil akhir. Tulis × untuk kali, ÷ untuk bagi, → untuk langkah, dan pangkat Unicode seperti x². Jangan pakai tanda dolar, LaTeX, caret, atau / sebagai tanda pembagian.
+5. Jawaban ringkas dan padat (maksimal sekitar 150 kata). Gunakan bullet atau emoji secukupnya agar tetap menyenangkan.
+6. Sesekali gunakan gaya petualangan RPG untuk memotivasi, tetapi tetap edukatif.
+7. Jika pertanyaan di luar pendidikan, arahkan dengan halus kembali ke belajar.
+8. Jangan memberikan konten tidak pantas, kata-kata kasar, atau jawaban menyesatkan. Jangan mengaku sebagai manusia—kamu adalah AI yang siap membantu.`;
 }
 
 /**
@@ -399,7 +415,7 @@ function localTutorFallback(history: AiChatMessage[], context?: AiChatPlayerCont
     {
       keywords: ['luas', 'keliling', 'lingkaran'],
       reply: () =>
-        'Ingat rumus lingkaran yuk! 🥧\n• Keliling = 2 × π × r (atau π × d)\n• Luas = π × r²\nTips: π biasanya dibulatkan 22/7 (r kelipatan 7) atau 3,14. Tulis dulu rumusnya, lalu masukkan angkanya pelan-pelan.',
+        'Ingat rumus lingkaran yuk! 🥧\n• Keliling = 2 × π × r (atau π × d)\n• Luas = π × r²\nTips: π biasanya dibulatkan 22 ÷ 7 (kalau r kelipatan 7) atau 3,14. Tulis dulu rumusnya, lalu masukkan angkanya pelan-pelan.',
     },
     {
       keywords: ['aljabar', 'persamaan', 'spldv', 'variabel', 'x ='],

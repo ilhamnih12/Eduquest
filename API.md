@@ -12,7 +12,7 @@ Dokumentasi ini menjelaskan secara komprehensif seluruh endpoint REST API yang t
 | `POST` | `/api/auth/[...nextauth]` | Endpoint otentikasi NextAuth (Login & Sesi) | Publik |
 | `POST` | `/api/ai/generate-question` | Menghasilkan soal SMP via Gemini AI / Fallback | Publik / Internal |
 | `POST` | `/api/ai/study-tips` | Menganalisis statistik belajar & rekomendasi AI | Publik / Internal |
-| `POST` | `/api/sync` | Sinkronisasi data game lokal ke Redis/Vercel KV | Publik / User |
+| `POST` | `/api/sync` | Sinkronisasi data game lokal ke Upstash Redis | Publik / User |
 
 ---
 
@@ -67,7 +67,9 @@ Menghasilkan 1 butir soal pilihan ganda baru sesuai mata pelajaran, tingkat kela
   "grade": 8,
   "difficulty": "medium",
   "topic": "Teorema Pythagoras",
-  "excludeIds": ["mat-001", "mat-002"]
+  "excludeIds": ["mat-001", "mat-002"],
+  "variationSeed": "battle-8-1740000000",
+  "previousQuestionTexts": ["Soal dari ronde sebelumnya"]
 }
 ```
 
@@ -77,7 +79,9 @@ Menghasilkan 1 butir soal pilihan ganda baru sesuai mata pelajaran, tingkat kela
 | `grade` | `number` (Opsional) | `7`, `8`, `9` (Default: `7`) |
 | `difficulty` | `string` (Opsional) | `'easy'`, `'medium'`, `'hard'` (Default: `'medium'`) |
 | `topic` | `string` (Opsional) | Topik materi spesifik |
-| `excludeIds` | `string[]` (Opsional) | Daftar ID soal yang sudah pernah dijawab |
+| `excludeIds` | `string[]` (Opsional) | Daftar ID soal yang sudah pernah dijawab agar tidak cepat mengulang |
+| `variationSeed` | `string` (Opsional) | Penanda variasi konteks soal pada sesi yang sama |
+| `previousQuestionTexts` | `string[]` (Opsional) | Beberapa soal terakhir yang perlu dihindari intinya oleh AI |
 
 ### Response Berhasil (200 OK)
 ```json
@@ -142,7 +146,7 @@ Menganalisis performa akademik siswa pada mata pelajaran tertentu dan menghasilk
 ---
 
 ## 4. Sinkronisasi Data Game Cloud
-Menyimpan dan menyelaraskan state karakter, tas inventori, dan rekor prestasi antara browser lokal (IndexedDB) dan server basis data (Vercel KV / Redis).
+Menyimpan dan menyelaraskan state karakter, tas inventori, dan rekor prestasi antara browser lokal (IndexedDB) dan server Upstash Redis. Adapter masih menerima nama env KV lama dari integrasi Vercel.
 
 - **URL**: `/api/sync`
 - **Method**: `POST`
