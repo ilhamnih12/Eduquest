@@ -44,7 +44,7 @@ export function SessionHydrator() {
           // Pastikan progres milik akun yang sedang login yang termuat.
           // initGame sendiri sudah punya guard & timeout (tidak akan menggantung,
           // dan otomatis dilewati bila sudah ter-init untuk user yang sama).
-          await initGame(hydratedUser.email, hydratedUser.username);
+          await initGame(hydratedUser.id || hydratedUser.email, hydratedUser.username);
         } else {
           // Tidak ada sesi valid — bersihkan state lokal yang tersisa
           if (user) logout();

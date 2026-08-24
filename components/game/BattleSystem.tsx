@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { Subject, GradeLevel } from '@/types/game';
+import { getCurriculumTopics } from '@/lib/game/curriculum';
 import { getSubjectMeta } from '@/lib/utils';
 import { EnemyCard } from './EnemyCard';
 import { CharacterCard } from './CharacterCard';
@@ -40,7 +41,17 @@ export function BattleSystem() {
 
   const [selectedSubject, setSelectedSubject] = React.useState<Subject>('matematika');
   const [selectedGrade, setSelectedGrade] = React.useState<GradeLevel>(7);
+  const [selectedTopicId, setSelectedTopicId] = React.useState('random');
   const [isStartingBattle, setIsStartingBattle] = React.useState(false);
+
+  const curriculumTopics = getCurriculumTopics(selectedSubject, selectedGrade);
+  const selectedTopic = curriculumTopics.find((item) => item.id === selectedTopicId);
+
+  React.useEffect(() => {
+    // Saat mapel/kelas berubah, mulai dari mode acak supaya subbab tidak
+    // terkunci di pilihan mapel sebelumnya.
+    setSelectedTopicId('random');
+  }, [selectedSubject, selectedGrade]);
 
   const subjects: { id: Subject; name: string; icon: React.ComponentType<{ className?: string }>; desc: string }[] = [
     { id: 'matematika', name: 'Matematika', icon: Calculator, desc: 'Aljabar, Geometri, Pythagoras, SPLDV & Pola Bilangan' },
@@ -50,10 +61,13 @@ export function BattleSystem() {
     { id: 'inggris', name: 'Bahasa Inggris', icon: Languages, desc: 'Grammar, Tenses, Narrative, Passive Voice & Vocabulary' },
   ];
 
-  const handleStart = async (subj: Subject, grade: GradeLevel) => {
+  const handleStart = async (subj: Subject, grade: GradeLevel, topic?: string) => {
     setIsStartingBattle(true);
-    await startBattle(subj, grade);
-    setIsStartingBattle(false);
+    try {
+      await startBattle(subj, grade, topic);
+    } finally {
+      setIsStartingBattle(false);
+    }
   };
 
   // If no battle is active, show the Arena Subject Selection Screen
@@ -76,7 +90,7 @@ export function BattleSystem() {
               Tantang Monster Pengetahuan, Uji Ketangkasan Akalmu!
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Pilih mata pelajaran dan tingkat kelas untuk memulai pertempuran edukasi. Setiap jawaban benar melancarkan serangan bertenaga AI Gemini, raih EXP, Keping Emas, dan item langka!
+              Pilih mapel, kelas, dan subbab untuk mulai bertarung. Jawaban benar jadi serangan, lalu kamu bisa kumpulkan EXP, emas, dan item langka!
             </p>
           </div>
         </div>
@@ -84,7 +98,7 @@ export function BattleSystem() {
         {/* Grade Selector Tabs */}
         <div className="space-y-3">
           <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            1. Pilih Tingkat Kelas SMP:
+            1. Pilih Kelas SMP:
           </label>
           <div className="grid grid-cols-3 gap-3">
             {([7, 8, 9] as GradeLevel[]).map((grade) => (
@@ -104,10 +118,56 @@ export function BattleSystem() {
           </div>
         </div>
 
+        {/* Subchapter selector */}
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                2. Pilih Subbab (atau Acak):
+              </label>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Soal mengikuti subbab; monster dipilih acak dari tema mapel dan kelas.
+              </p>
+            </div>
+            <Badge variant="outline" className="text-[10px]">
+              {curriculumTopics.length} subbab tersedia
+            </Badge>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            <button
+              type="button"
+              onClick={() => setSelectedTopicId('random')}
+              className={`text-left p-3 rounded-2xl border transition-all ${
+                selectedTopicId === 'random'
+                  ? 'border-edu-accentLight dark:border-edu-accentDark bg-edu-accentLight/10 dark:bg-edu-accentDark/15 ring-1 ring-edu-accentLight dark:ring-edu-accentDark'
+                  : 'border-edu-borderLight dark:border-edu-borderDark bg-edu-cardLight dark:bg-edu-cardDark hover:border-edu-accentLight/50'
+              }`}
+            >
+              <span className="block text-xs font-black text-edu-textLight dark:text-edu-textDark">🎲 Subbab Acak</span>
+              <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-1">Biar tiap sesi terasa beda.</span>
+            </button>
+            {curriculumTopics.map((item) => (
+              <button
+                type="button"
+                key={item.id}
+                onClick={() => setSelectedTopicId(item.id)}
+                className={`text-left p-3 rounded-2xl border transition-all ${
+                  selectedTopicId === item.id
+                    ? 'border-edu-accentLight dark:border-edu-accentDark bg-edu-accentLight/10 dark:bg-edu-accentDark/15 ring-1 ring-edu-accentLight dark:ring-edu-accentDark'
+                    : 'border-edu-borderLight dark:border-edu-borderDark bg-edu-cardLight dark:bg-edu-cardDark hover:border-edu-accentLight/50'
+                }`}
+              >
+                <span className="block text-xs font-black text-edu-textLight dark:text-edu-textDark">{item.name}</span>
+                <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{item.description}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Subject Selection Cards */}
         <div className="space-y-3">
           <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            2. Pilih Arena Mata Pelajaran:
+            3. Pilih Arena Mata Pelajaran:
           </label>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {subjects.map((item) => {
@@ -161,7 +221,11 @@ export function BattleSystem() {
                       variant={isSelected ? 'primary' : 'outline'}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleStart(item.id, selectedGrade);
+                        handleStart(
+                          item.id,
+                          selectedGrade,
+                          selectedTopicId === 'random' ? undefined : selectedTopic?.name
+                        );
                       }}
                       isLoading={isStartingBattle && isSelected}
                       className="text-xs font-bold"
@@ -198,9 +262,15 @@ export function BattleSystem() {
             Kabur dari Arena
           </Button>
           <div className="h-5 w-[1px] bg-slate-300 dark:bg-edu-borderDark" />
-          <span className="text-xs font-black text-edu-textLight dark:text-edu-textDark">
-            Ronde ke-{battleState.currentTurn}
-          </span>
+          <div>
+            <span className="text-xs font-black text-edu-textLight dark:text-edu-textDark">
+              Ronde ke-{battleState.currentTurn}
+              <span className="font-semibold text-slate-400"> (minimal {battleState.minimumRounds})</span>
+            </span>
+            <span className="block text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              {battleState.topic || 'Subbab campuran'} · Gelombang {battleState.enemiesDefeated + 1}
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -261,7 +331,7 @@ export function BattleSystem() {
         isVictory={battleState.isVictory === true}
         enemy={enemy}
         rewards={battleState.rewards}
-        onPlayAgain={() => handleStart(battleState.subject, battleState.grade)}
+        onPlayAgain={() => handleStart(battleState.subject, battleState.grade, battleState.topic || undefined)}
       />
     </div>
   );

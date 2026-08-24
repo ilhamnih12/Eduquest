@@ -162,6 +162,18 @@ export interface BattleState {
   isActive: boolean;
   subject: Subject;
   grade: GradeLevel;
+  /** Subbab yang dipilih untuk satu sesi arena. */
+  topic: string | null;
+  /** Jumlah ronde minimum sebelum kemenangan bisa ditampilkan. */
+  minimumRounds: number;
+  /** Jumlah musuh yang sudah dikalahkan pada sesi ini. */
+  enemiesDefeated: number;
+  /** ID soal yang sudah muncul agar fallback lokal tidak cepat mengulang. */
+  askedQuestionIds: string[];
+  /** Teks beberapa soal terakhir agar AI tidak mengulang inti pertanyaan. */
+  recentQuestionTexts: string[];
+  /** Posisi kunci soal sebelumnya (0 = A, 1 = B, dan seterusnya). */
+  lastCorrectAnswerPosition: number | null;
   enemy: Enemy | null;
   currentTurn: number;
   playerCurrentHp: number;

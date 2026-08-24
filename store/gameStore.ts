@@ -10,9 +10,12 @@ import {
   CombatLogEntry,
   CharacterAttributes,
   Item,
+  Question,
 } from '@/types/game';
 import { ITEM_DATABASE, getItemById } from '@/lib/game/item-database';
 import { getRandomEnemy } from '@/lib/game/enemies-database';
+import { getRandomCurriculumTopic } from '@/lib/game/curriculum';
+import { formatQuestion, shuffleQuestionOptions } from '@/lib/game/question-format';
 import { INITIAL_ACHIEVEMENTS, checkAchievements } from '@/lib/game/achievements-database';
 import {
   calculateRequiredExp,
@@ -35,6 +38,8 @@ import { soundManager } from '@/lib/utils';
  * tanpa pengaman ini tombol login akan nyangkut di "Memproses...".
  */
 const STORAGE_TIMEOUT_MS = 3500;
+/** Satu sesi arena minimal berisi lima soal/ronde. */
+export const MIN_BATTLE_ROUNDS = 5;
 
 function withTimeout<T>(promise: Promise<T>, fallback: T, ms = STORAGE_TIMEOUT_MS): Promise<T> {
   return Promise.race([
@@ -52,7 +57,7 @@ interface GameStoreState {
 
   // Actions
   initGame: (userId?: string, username?: string) => Promise<void>;
-  startBattle: (subject: Subject, grade?: GradeLevel) => Promise<void>;
+  startBattle: (subject: Subject, grade?: GradeLevel, topic?: string) => Promise<void>;
   fetchNextQuestion: () => Promise<void>;
   selectAnswer: (optionIndex: number) => void;
   submitAnswer: () => Promise<void>;
@@ -122,6 +127,12 @@ const INITIAL_BATTLE_STATE: BattleState = {
   isActive: false,
   subject: 'matematika',
   grade: 7,
+  topic: null,
+  minimumRounds: MIN_BATTLE_ROUNDS,
+  enemiesDefeated: 0,
+  askedQuestionIds: [],
+  recentQuestionTexts: [],
+  lastCorrectAnswerPosition: null,
   enemy: null,
   currentTurn: 1,
   playerCurrentHp: 100,
@@ -201,8 +212,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     }
   },
 
-  startBattle: async (subject: Subject, grade: GradeLevel = 7) => {
+  startBattle: async (subject: Subject, grade: GradeLevel = 7, topic?: string) => {
     const { gameState } = get();
+    const selectedTopic = topic || getRandomCurriculumTopic(subject, grade).name;
     const enemy = getRandomEnemy(subject, grade);
 
     // Calculate effective player HP based on level and equipment
@@ -217,6 +229,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         isActive: true,
         subject,
         grade,
+        topic: selectedTopic,
+        minimumRounds: MIN_BATTLE_ROUNDS,
+        enemiesDefeated: 0,
+        askedQuestionIds: [],
+        recentQuestionTexts: [],
+        lastCorrectAnswerPosition: null,
         enemy,
         currentTurn: 1,
         playerCurrentHp: initialPlayerHp > 0 ? initialPlayerHp : Math.floor(effective.maxHp * 0.5),
@@ -255,27 +273,46 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     set({ isAiLoading: true });
 
+    const difficulty = battleState.currentTurn > 3 ? 'hard' : battleState.currentTurn > 1 ? 'medium' : 'easy';
+    const previousQuestionIds = battleState.askedQuestionIds;
+    const previousQuestionTexts = battleState.recentQuestionTexts;
+    const previousCorrectAnswerPosition = battleState.lastCorrectAnswerPosition;
+
+    const prepareQuestion = (question: Question): Question => {
+      const formatted = formatQuestion(question);
+      return shuffleQuestionOptions(formatted, previousCorrectAnswerPosition);
+    };
+
     try {
-      // Call our Next.js API route with Gemini AI & fallback support
+      // Topic, riwayat soal, dan seed variasi dikirim supaya AI tidak mengulang
+      // pola soal yang sama pada setiap ronde.
       const res = await fetch('/api/ai/generate-question', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subject: battleState.subject,
           grade: battleState.grade,
-          difficulty: battleState.currentTurn > 3 ? 'hard' : battleState.currentTurn > 1 ? 'medium' : 'easy',
+          topic: battleState.topic,
+          difficulty,
+          excludeIds: previousQuestionIds,
+          previousQuestionTexts,
+          variationSeed: `${Date.now()}-${battleState.currentTurn}-${Math.random().toString(36).slice(2, 8)}`,
         }),
       });
 
       if (!res.ok) throw new Error('API failed');
 
-      const question = await res.json();
+      const question = prepareQuestion((await res.json()) as Question);
 
       set((state) => ({
         isAiLoading: false,
         battleState: {
           ...state.battleState,
           currentQuestion: question,
+          askedQuestionIds: state.battleState.askedQuestionIds.includes(question.id)
+            ? state.battleState.askedQuestionIds
+            : [...state.battleState.askedQuestionIds, question.id],
+          recentQuestionTexts: [...state.battleState.recentQuestionTexts, question.question].slice(-3),
           selectedOption: null,
           isAnswerSubmitted: false,
           isCorrect: null,
@@ -284,15 +321,26 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       }));
     } catch (err) {
       console.warn('Falling back to local question:', err);
-      // Fallback to local questions immediately
+      // Fallback tetap memakai subbab, riwayat ID, dan posisi jawaban sebelumnya.
       const { getRandomLocalQuestion } = await import('@/lib/game/question-bank');
-      const fallbackQ = getRandomLocalQuestion(battleState.subject, battleState.grade);
+      const fallbackQ = prepareQuestion(
+        getRandomLocalQuestion(
+          battleState.subject,
+          battleState.grade,
+          previousQuestionIds,
+          battleState.topic || undefined
+        )
+      );
 
       set((state) => ({
         isAiLoading: false,
         battleState: {
           ...state.battleState,
           currentQuestion: fallbackQ,
+          askedQuestionIds: state.battleState.askedQuestionIds.includes(fallbackQ.id)
+            ? state.battleState.askedQuestionIds
+            : [...state.battleState.askedQuestionIds, fallbackQ.id],
+          recentQuestionTexts: [...state.battleState.recentQuestionTexts, fallbackQ.question].slice(-3),
           selectedOption: null,
           isAnswerSubmitted: false,
           isCorrect: null,
@@ -338,6 +386,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     let nextPlayerHp = battleState.playerCurrentHp;
     let victory: boolean | null = null;
     let rewards = null;
+    let nextEnemy = enemy;
+    let nextEnemiesDefeated = battleState.enemiesDefeated;
+    let updatedInventory = [...gameState.inventory];
 
     // Update buff turns
     let currentBuffs = { ...battleState.activeBattleBuffs };
@@ -381,17 +432,32 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       }
 
       if (nextEnemyHp <= 0) {
-        // ENEMY DEFEATED -> VICTORY!
-        victory = true;
-        soundManager.playVictory();
-        rewards = generateBattleRewards(enemy);
+        nextEnemiesDefeated += 1;
 
-        logs.push({
-          id: `log-${Date.now()}-vic`,
-          turn: battleState.currentTurn,
-          message: `🏆 KEMENANGAN! ${enemy.name} berhasil kamu taklukkan! "${enemy.defeatQuote}"`,
-          type: 'system',
-        });
+        // Satu sesi arena tidak langsung selesai saat satu monster tumbang.
+        // Sebelum lima ronde, monster berikutnya masuk sebagai gelombang baru.
+        if (battleState.currentTurn < battleState.minimumRounds) {
+          nextEnemy = getRandomEnemy(battleState.subject, battleState.grade, [enemy.id]);
+          nextEnemyHp = nextEnemy.maxHp;
+          logs.push({
+            id: `log-${Date.now()}-wave`,
+            turn: battleState.currentTurn,
+            message: `💥 ${enemy.name} tumbang! Belum selesai—${nextEnemy.name} muncul untuk ronde berikutnya.`,
+            type: 'system',
+          });
+        } else {
+          // Kemenangan hanya boleh muncul setelah beberapa ronde selesai.
+          victory = true;
+          soundManager.playVictory();
+          rewards = generateBattleRewards(enemy);
+
+          logs.push({
+            id: `log-${Date.now()}-vic`,
+            turn: battleState.currentTurn,
+            message: `🏆 KEMENANGAN! ${enemy.name} berhasil kamu taklukkan setelah ${battleState.currentTurn} ronde! "${enemy.defeatQuote}"`,
+            type: 'system',
+          });
+        }
       }
     } else {
       soundManager.playWrong();
@@ -416,11 +482,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         // Check for Revival Stone
         const revivalItemIndex = gameState.inventory.findIndex((i) => i.itemId === 'stone_revival' && i.quantity > 0);
         if (revivalItemIndex >= 0) {
-          // Consume revival stone
-          const updatedInv = [...gameState.inventory];
-          updatedInv[revivalItemIndex].quantity -= 1;
-          if (updatedInv[revivalItemIndex].quantity <= 0) {
-            updatedInv.splice(revivalItemIndex, 1);
+          // Consume revival stone. Pakai inventory yang sama dengan proses save
+          // di bawah supaya batu tidak muncul lagi setelah jawaban diproses.
+          updatedInventory[revivalItemIndex].quantity -= 1;
+          if (updatedInventory[revivalItemIndex].quantity <= 0) {
+            updatedInventory.splice(revivalItemIndex, 1);
           }
           nextPlayerHp = Math.floor(effective.maxHp * 0.5);
 
@@ -430,13 +496,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
             message: `✨ Batu Kebangkitan bersinar terang! Karaktermu bangkit kembali dengan ${nextPlayerHp} HP!`,
             type: 'system',
           });
-
-          set((state) => ({
-            gameState: {
-              ...state.gameState,
-              inventory: updatedInv,
-            },
-          }));
         } else {
           // PLAYER DEFEATED
           victory = false;
@@ -478,7 +537,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // Handle Victory Progression
     let updatedCharacter = { ...gameState.character };
-    let updatedInventory = [...gameState.inventory];
 
     if (victory === true && rewards) {
       updatedStats.totalBattles += 1;
@@ -567,9 +625,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       gameState: newGameState,
       battleState: {
         ...battleState,
+        enemy: nextEnemy,
         playerCurrentHp: nextPlayerHp,
         enemyCurrentHp: nextEnemyHp,
         currentTurn: battleState.currentTurn + 1,
+        enemiesDefeated: nextEnemiesDefeated,
+        lastCorrectAnswerPosition: battleState.currentQuestion.correctAnswer,
         isAnswerSubmitted: true,
         isCorrect,
         streakCount: newStreak,
@@ -951,8 +1012,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
 
   resetAllProgress: async () => {
+    const currentUserId = get().gameState.userId;
     const defaultState: GameState = {
-      userId: 'guest-default',
+      userId: currentUserId,
       character: DEFAULT_CHARACTER,
       inventory: [...DEFAULT_STARTER_INVENTORY],
       statistics: { ...DEFAULT_STATS },

@@ -1,6 +1,6 @@
 # 🚀 PANDUAN DEPLOYMENT EDUQUEST RPG (BAHASA INDONESIA)
 
-Panduan lengkap ini menjelaskan langkah demi langkah cara men-deploy **Eduquest RPG** ke lingkungan produksi di platform **Vercel** dengan konfigurasi zero-config, penyimpanan Redis/Vercel KV, dan Google Gemini AI.
+Panduan lengkap ini menjelaskan langkah demi langkah cara men-deploy **Eduquest RPG** ke lingkungan produksi di platform **Vercel** dengan konfigurasi zero-config, penyimpanan Upstash Redis, dan Google Gemini AI.
 
 ---
 
@@ -8,7 +8,7 @@ Panduan lengkap ini menjelaskan langkah demi langkah cara men-deploy **Eduquest 
 1. [Prasyarat Deployment](#1-prasyarat-deployment)
 2. [Langkah 1: Mendapatkan Google Gemini API Key Gratis](#langkah-1-mendapatkan-google-gemini-api-key-gratis)
 3. [Langkah 2: Menyiapkan NextAuth Secret Key](#langkah-2-menyiapkan-nextauth-secret-key)
-4. [Langkah 3: (Opsional) Menyiapkan Upstash Redis / Vercel KV](#langkah-3-opsional-menyiapkan-upstash-redis--vercel-kv)
+4. [Langkah 3: (Opsional) Menyiapkan Upstash Redis](#langkah-3-opsional-menyiapkan-upstash-redis)
 5. [Langkah 4: Deploy ke Vercel via Dashboard](#langkah-4-deploy-ke-vercel-via-dashboard)
 6. [Langkah 5: Deploy ke Vercel via Vercel CLI](#langkah-5-deploy-ke-vercel-via-vercel-cli)
 7. [Langkah 6: Verifikasi & Pengujian Pasca-Deploy](#langkah-6-verifikasi--pengujian-pasca-deploy)
@@ -27,7 +27,7 @@ Sebelum memulai proses deploy, pastikan Anda telah memiliki:
 
 ## Langkah 1: Mendapatkan Google Gemini API Key Gratis
 
-Eduquest menggunakan model Flash gratis `gemini-3.7-flash` (bukan Pro) untuk menghasilkan soal SMP dinamis dan tips belajar cerdas. Jika model itu tidak tersedia, sistem otomatis mencoba `gemini-3.5-flash` lalu `gemini-2.5-flash`.
+Eduquest memakai model Flash `gemini-3.7-flash` untuk membuat soal SMP dinamis dan tips belajar. Jika model utama belum tersedia untuk API key-mu, sistem mencoba `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.1-flash-lite`, lalu `gemini-2.5-flash`. Daftar ini mengikuti katalog model Gemini yang sedang didokumentasikan Google; kamu juga bisa mengatur `GEMINI_MODEL` sendiri.
 
 1. Buka situs [Google AI Studio](https://aistudio.google.com/apikey).
 2. Masuk menggunakan akun Google Anda.
@@ -53,18 +53,16 @@ Gunakan nilai ini untuk variabel `NEXTAUTH_SECRET`.
 
 ---
 
-## Langkah 3: (Opsional) Menyiapkan Upstash Redis / Vercel KV
+## Langkah 3: (Opsional) Menyiapkan Upstash Redis
 
-Eduquest dapat berjalan sepenuhnya secara offline menggunakan **Dexie.js IndexedDB** di browser siswa. Namun, untuk mengaktifkan sinkronisasi cloud antar perangkat:
+Eduquest dapat berjalan sepenuhnya secara offline menggunakan **Dexie.js IndexedDB** di browser siswa. Namun, untuk mengaktifkan sinkronisasi cloud antarperangkat:
 
-1. Buka [Dashboard Vercel](https://vercel.com/dashboard).
-2. Klik tab **"Storage"** di navigasi atas.
-3. Klik **"Create Database"** > pilih **"KV (Ditenagai oleh Upstash)"**.
-4. Beri nama basis data (misalnya `eduquest-redis-db`) dan pilih region terdekat (misalnya `sin1 - Singapore`).
-5. Setelah terbuat, Vercel akan otomatis menyediakan variabel:
-   - `KV_REST_API_URL`
-   - `KV_REST_API_TOKEN`
-   - `KV_URL`
+1. Buka [Vercel Marketplace Storage](https://vercel.com/marketplace?category=storage) atau [Upstash Console](https://console.upstash.com/).
+2. Buat database Redis dan pilih region terdekat.
+3. Tambahkan variabel berikut ke project Vercel:
+   - `UPSTASH_REDIS_REST_URL`
+   - `UPSTASH_REDIS_REST_TOKEN`
+4. Integrasi Upstash di Vercel juga bisa menyediakan nama env lama `KV_REST_API_URL` dan `KV_REST_API_TOKEN`; adapter Eduquest tetap mendukung keduanya.
 
 ---
 
@@ -89,7 +87,7 @@ Metode termudah dan direkomendasikan adalah melalui antarmuka web Vercel:
 | `NEXTAUTH_SECRET` | *(String acak hasil openssl di Langkah 2)* |
 | `GEMINI_API_KEY` | *(API key dari Google AI Studio di Langkah 1)* |
 
-*(Jika menggunakan Vercel KV, hubungkan database KV yang telah dibuat di Langkah 3).*
+*(Jika memakai sinkronisasi cloud, hubungkan database Upstash Redis yang dibuat di Langkah 3 dan tambahkan env Redis-nya.)*
 
 6. Klik tombol **"Deploy"**.
 7. Tunggu proses kompilasi selama kurang lebih 40-60 detik.

@@ -7,19 +7,21 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Tabs } from '@/components/ui/Tabs';
 import { Button } from '@/components/ui/Button';
 import { useGameStore } from '@/store/gameStore';
+import { useAuthStore } from '@/store/authStore';
 import { RotateCcw, ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
 
 export default function ProfilePage() {
   const { isInitialized, initGame, resetAllProgress, syncDataToServer } = useGameStore();
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = React.useState<string>('report');
   const [isResetConfirmOpen, setIsResetConfirmOpen] = React.useState<boolean>(false);
   const [isSyncing, setIsSyncing] = React.useState<boolean>(false);
 
   React.useEffect(() => {
-    if (!isInitialized) {
-      initGame();
+    if (!isInitialized && user) {
+      initGame(user.id, user.username);
     }
-  }, [isInitialized, initGame]);
+  }, [isInitialized, initGame, user]);
 
   const tabs = [
     { id: 'report', label: 'Rapor & AI Guru', icon: '📊' },
@@ -58,7 +60,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-edu-textLight dark:text-edu-textDark">
-                    Sinkronisasi Cloud Vercel KV / Redis
+                    Sinkronisasi Cloud Upstash Redis
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     Sinkronkan data petualangan lokal IndexedDB dengan server cloud.

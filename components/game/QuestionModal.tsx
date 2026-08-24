@@ -3,6 +3,7 @@ import { Question } from '@/types/game';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { getSubjectMeta } from '@/lib/utils';
+import { formatMathText } from '@/lib/game/question-format';
 import {
   Sparkles,
   CheckCircle2,
@@ -49,10 +50,10 @@ export function QuestionModal({
           </div>
         </div>
         <h3 className="text-base font-bold text-edu-textLight dark:text-edu-textDark">
-          Memanggil Soal Pendidikan dari Gemini AI...
+          Lagi menyiapkan soal dari Guru AI...
         </h3>
         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-          Menyiapkan tantangan kurikulum SMP dengan tingkat kesulitan adaptif.
+          Tunggu sebentar, soal dibuat sesuai kelas dan subbab yang kamu pilih.
         </p>
       </div>
     );
@@ -110,7 +111,7 @@ export function QuestionModal({
             ?
           </span>
           <h2 className="text-base sm:text-lg font-bold leading-relaxed text-edu-textLight dark:text-edu-textDark">
-            {question.question}
+            {formatMathText(question.question)}
           </h2>
         </div>
 
@@ -118,7 +119,7 @@ export function QuestionModal({
           <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-200">
             <Lightbulb className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold">Petunjuk Guru:</span> {question.hint}
+              <span className="font-bold">Petunjuk Guru:</span> {formatMathText(question.hint)}
             </div>
           </div>
         )}
@@ -164,7 +165,7 @@ export function QuestionModal({
               >
                 {optionLetters[index]}
               </span>
-              <span className="flex-1 leading-snug">{option}</span>
+              <span className="flex-1 leading-snug">{formatMathText(option)}</span>
             </button>
           );
         })}
@@ -193,7 +194,7 @@ export function QuestionModal({
             )}
           </div>
           <p className="text-xs leading-relaxed opacity-90 pl-7">
-            <span className="font-bold">Pembahasan:</span> {question.explanation}
+            <span className="font-bold">Pembahasan:</span> {formatMathText(question.explanation)}
           </p>
         </div>
       )}

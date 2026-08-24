@@ -16,7 +16,9 @@ import { QUESTION_BANK, getLocalQuestions, getRandomLocalQuestion } from '@/lib/
 import { ITEM_DATABASE, getAllShopItems, getItemById } from '@/lib/game/item-database';
 import { ENEMY_DATABASE, getRandomEnemy } from '@/lib/game/enemies-database';
 import { INITIAL_ACHIEVEMENTS, checkAchievements } from '@/lib/game/achievements-database';
-import { Character, GameStatistics } from '@/types/game';
+import { getCurriculumTopics } from '@/lib/game/curriculum';
+import { formatMathText, shuffleQuestionOptions } from '@/lib/game/question-format';
+import { Character, GameStatistics, Question } from '@/types/game';
 
 describe('Level Calculator & Progression', () => {
   it('calculates exponential EXP required per level correctly', () => {
@@ -184,5 +186,62 @@ describe('Achievement Unlock Logic', () => {
     const firstVic = result.updatedAchievements.find((a) => a.id === 'first_victory');
     expect(firstVic?.unlocked).toBe(true);
     expect(result.totalRewardGold).toBeGreaterThan(0);
+  });
+});
+
+describe('Format Soal dan Variasi Arena', () => {
+  it('mengubah notasi matematika menjadi teks yang mudah dibaca', () => {
+    const text = formatMathText('$x^{2} + y^2 = \\frac{18}{3}$ => 6');
+
+    expect(text).toContain('x²');
+    expect(text).toContain('y²');
+    expect(text).toContain('18 ÷ 3');
+    expect(text).toContain('→');
+    expect(text).not.toContain('$');
+    expect(text).not.toMatch(/\d\s*\/\s*\d/);
+    expect(formatMathText('1 / (x + 1)')).toBe('1 ÷ (x + 1)');
+  });
+
+  it('menjaga kunci jawaban tidak berada di posisi sebelumnya', () => {
+    const question: Question = {
+      id: 'format-test',
+      subject: 'matematika',
+      grade: 7,
+      topic: 'Aljabar',
+      difficulty: 'easy',
+      question: 'Berapa 1 + 1?',
+      options: ['1', '2', '3', '4'],
+      correctAnswer: 1,
+      explanation: '1 + 1 = 2.',
+      source: 'local_bank',
+    };
+
+    const nextQuestion = shuffleQuestionOptions(question, 1);
+    expect(nextQuestion.correctAnswer).not.toBe(1);
+    expect(nextQuestion.options[nextQuestion.correctAnswer]).toBe('2');
+  });
+
+  it('menyediakan minimal lima subbab untuk setiap mapel dan kelas', () => {
+    const subjects = ['matematika', 'ipa', 'ips', 'indonesia', 'inggris'] as const;
+    const grades = [7, 8, 9] as const;
+
+    subjects.forEach((subject) => {
+      grades.forEach((grade) => {
+        expect(getCurriculumTopics(subject, grade).length).toBeGreaterThanOrEqual(5);
+      });
+    });
+  });
+
+  it('menyediakan beberapa musuh berbeda di setiap mapel dan kelas', () => {
+    const subjects = ['matematika', 'ipa', 'ips', 'indonesia', 'inggris'] as const;
+    const grades = [7, 8, 9] as const;
+
+    subjects.forEach((subject) => {
+      grades.forEach((grade) => {
+        const enemies = ENEMY_DATABASE.filter((enemy) => enemy.subject === subject && enemy.grade === grade);
+        expect(enemies.length).toBeGreaterThanOrEqual(3);
+        expect(new Set(enemies.map((enemy) => enemy.id)).size).toBe(enemies.length);
+      });
+    });
   });
 });

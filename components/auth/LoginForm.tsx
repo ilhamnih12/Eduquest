@@ -2,10 +2,8 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { useAuthStore } from '@/store/authStore';
-import { useGameStore } from '@/store/gameStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -16,9 +14,7 @@ import { LogIn, Sparkles, Key, ShieldCheck } from 'lucide-react';
  * Siswa wajib memiliki akun terdaftar (email + kata sandi) untuk bermain.
  */
 export function LoginForm() {
-  const router = useRouter();
   const { setUser } = useAuthStore();
-  const { initGame } = useGameStore();
 
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -30,70 +26,40 @@ export function LoginForm() {
     setError(null);
     setIsLoading(true);
 
-    // Batas waktu fetch sesi agar tombol tidak pernah nyangkut di "Memproses..."
-    const fetchSessionWithTimeout = async () => {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
-      try {
-        const res = await fetch('/api/auth/session', {
-          cache: 'no-store',
-          signal: controller.signal,
-        });
-        return await res.json();
-      } catch {
-        return null;
-      } finally {
-        clearTimeout(timer);
-      }
-    };
+    // Callback dibatasi ke path internal agar tidak bisa dipakai untuk open redirect.
+    const params = new URLSearchParams(window.location.search);
+    const callbackUrl = params.get('callbackUrl');
+    const safeCallback = callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//') ? callbackUrl : '/';
 
     try {
       const res = await signIn('credentials', {
         redirect: false,
-        email,
+        callbackUrl: safeCallback,
+        email: email.trim().toLowerCase(),
         password,
       });
 
       if (res?.error) {
         setError(
           'Email atau kata sandi tidak sesuai, atau akun belum terdaftar. ' +
-            'Silakan daftar terlebih dahulu bila belum punya akun.'
+            'Kalau belum punya akun, daftar dulu ya.'
         );
         return;
       }
 
-      // Login sukses — ambil data sesi resmi dari NextAuth (fallback aman bila lambat)
-      const session = await fetchSessionWithTimeout();
-      const sessionUser = session?.user;
-
-      const username =
-        sessionUser?.name || (sessionUser?.email ? sessionUser.email.split('@')[0] : email.split('@')[0]);
-
+      // Cookie sesi NextAuth sudah dibuat. Navigasi penuh memastikan middleware,
+      // SessionHydrator, dan store langsung membaca sesi baru tanpa perlu refresh
+      // manual oleh pengguna. Pakai path relatif agar tetap bekerja di domain
+      // preview maupun production (tanpa mengarah ke localhost).
       setUser({
-        id: sessionUser?.id || email,
-        email: sessionUser?.email || email,
-        username,
-        avatar: sessionUser?.image,
-        provider: sessionUser?.provider === 'google' ? 'google' : 'credentials',
+        id: email,
+        email: email.trim().toLowerCase(),
+        username: email.trim().split('@')[0],
+        provider: 'credentials',
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
       });
-
-      // Siapkan progres lokal — JANGAN biarkan memblokir navigasi bila storage lambat/terblokir
-      try {
-        await Promise.race([
-          initGame(sessionUser?.email || email, username),
-          new Promise((resolve) => setTimeout(resolve, 4000)),
-        ]);
-      } catch {
-        // Lanjut navigasi — halaman tujuan akan menyelesaikan inisialisasi sendiri
-      }
-
-      // Kembali ke halaman yang tadinya diminta (dari middleware), default: halaman utama
-      const params = new URLSearchParams(window.location.search);
-      const callbackUrl = params.get('callbackUrl');
-      const safeCallback = callbackUrl && callbackUrl.startsWith('/') ? callbackUrl : '/';
-      router.push(safeCallback);
+      window.location.replace(safeCallback);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Gagal masuk ke dalam game.');
     } finally {

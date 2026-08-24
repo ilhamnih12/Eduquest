@@ -15,6 +15,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useGameStore } from '@/store/gameStore';
 import type { AiChatMessage } from '@/types/ai';
 import type { Subject } from '@/types/game';
+import { formatMathText } from '@/lib/game/question-format';
 
 const STORAGE_KEY = 'eduquest_ai_chat_v1';
 const MAX_STORED_MESSAGES = 40;
@@ -293,7 +294,7 @@ export function AiChatBubble() {
                       : 'rounded-2xl rounded-bl-md bg-edu-cardLight dark:bg-edu-cardDark border border-edu-borderLight dark:border-edu-borderDark text-edu-textLight dark:text-edu-textDark shadow-sm'
                   }`}
                 >
-                  {message.content}
+                  {message.role === 'assistant' ? formatMathText(message.content) : message.content}
                 </div>
               </div>
             ))}
