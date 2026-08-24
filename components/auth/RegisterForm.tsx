@@ -77,11 +77,21 @@ export function RegisterForm() {
         lastLogin: new Date().toISOString(),
       });
 
-      // Initialize game state with user details
-      await initGame(email, username);
-      router.push('/battle');
+      // Siapkan progres lokal — jangan blokir navigasi bila storage lambat/terblokir
+      try {
+        await Promise.race([
+          initGame(email, username),
+          new Promise((resolve) => setTimeout(resolve, 4000)),
+        ]);
+      } catch {
+        // Lanjut navigasi — halaman tujuan akan menyelesaikan inisialisasi sendiri
+      }
+
+      // Arahkan ke halaman utama setelah berhasil mendaftar
+      router.push('/');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan sistem.');
+    } finally {
       setIsLoading(false);
     }
   };

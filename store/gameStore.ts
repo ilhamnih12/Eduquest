@@ -28,8 +28,24 @@ import {
 import { saveLocalGameState, loadLocalGameState } from '@/lib/db/dexie';
 import { soundManager } from '@/lib/utils';
 
+/**
+ * Batas waktu aman untuk operasi IndexedDB/Dexie.
+ * Di sebagian peramban (mode privat / iframe dengan storage terpartisi),
+ * IndexedDB bisa terblokir dan promise-nya tidak pernah selesai —
+ * tanpa pengaman ini tombol login akan nyangkut di "Memproses...".
+ */
+const STORAGE_TIMEOUT_MS = 3500;
+
+function withTimeout<T>(promise: Promise<T>, fallback: T, ms = STORAGE_TIMEOUT_MS): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 interface GameStoreState {
   isInitialized: boolean;
+  isInitializing: boolean;
   gameState: GameState;
   battleState: BattleState;
   isAiLoading: boolean;
@@ -128,6 +144,7 @@ const INITIAL_BATTLE_STATE: BattleState = {
 
 export const useGameStore = create<GameStoreState>((set, get) => ({
   isInitialized: false,
+  isInitializing: false,
   gameState: {
     userId: 'guest-default',
     character: DEFAULT_CHARACTER,
@@ -140,8 +157,15 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   isAiLoading: false,
 
   initGame: async (userId = 'guest-default', username) => {
+    // Cegah inisialisasi ganda yang berjalan bersamaan (race antar halaman)
+    if (get().isInitializing) return;
+    // Lewati bila sudah ter-init untuk userId yang sama
+    if (get().isInitialized && get().gameState.userId === userId) return;
+
+    set({ isInitializing: true });
     try {
-      const savedState = await loadLocalGameState(userId);
+      // Selalu beri batas waktu agar tidak pernah menggantung
+      const savedState = await withTimeout(loadLocalGameState(userId), null);
       if (savedState) {
         // Ensure character stats and equipment are calculated
         if (username && savedState.character) {
@@ -163,7 +187,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           achievements: [...INITIAL_ACHIEVEMENTS],
           lastSaved: new Date().toISOString(),
         };
-        await saveLocalGameState(newState);
+        await withTimeout(saveLocalGameState(newState), undefined);
         set({
           gameState: newState,
           isInitialized: true,
@@ -172,6 +196,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     } catch (error) {
       console.error('Failed to initialize game state:', error);
       set({ isInitialized: true });
+    } finally {
+      set({ isInitializing: false });
     }
   },
 
