@@ -4,7 +4,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x%20Strict-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-v3.4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 [![Zustand](https://img.shields.io/badge/Zustand-v4-orange?style=for-the-badge)](https://zustand-demo.pmnd.rs/)
-[![Google Gemini AI](https://img.shields.io/badge/Google%20Gemini-1.5%20Flash-4285F4?style=for-the-badge&logo=google)](https://aistudio.google.com/)
+[![Google Gemini AI](https://img.shields.io/badge/Google%20Gemini-3.7%20Flash-4285F4?style=for-the-badge&logo=google)](https://aistudio.google.com/)
 [![IndexedDB](https://img.shields.io/badge/IndexedDB-Dexie.js%20Offline-green?style=for-the-badge)](https://dexie.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
@@ -38,7 +38,7 @@
 
 Setiap soal yang dijawab dengan benar akan melancarkan serangan (*damage*) bertenaga magis kepada monster ujian, menghasilkan *combo streak*, memberikan *Experience Points* (EXP) untuk menaikkan level karakter, serta menganugerahi keping emas (*gold*) yang dapat dibelanjakan di Toko Perlengkapan.
 
-Didukung oleh integrasi **Google Gemini AI (1.5 Flash/Pro)**, Eduquest mampu memproduksi soal-soal penalaran kontekstual baru tanpa batas, memberikan pembahasan terperinci setiap kali siswa salah menjawab, serta menghadirkan **AI Guru Pembimbing** yang menganalisis kelemahan akademik dan menyusun rekomendasi belajar mandiri secara personal.
+Didukung oleh integrasi **Google Gemini AI (3.7 Flash, gratis di AI Studio)**, Eduquest mampu memproduksi soal-soal penalaran kontekstual baru tanpa batas, memberikan pembahasan terperinci setiap kali siswa salah menjawab, serta menghadirkan **AI Guru Pembimbing** yang menganalisis kelemahan akademik dan menyusun rekomendasi belajar mandiri secara personal.
 
 ---
 
@@ -84,7 +84,7 @@ Didukung oleh integrasi **Google Gemini AI (1.5 Flash/Pro)**, Eduquest mampu mem
 
 ### 💬 7. AI Bubble — Guru AI Eduquest (Gemini)
 - **Widget Obrolan Mengambang**: Bubble "Guru AI" di pojok kanan bawah, siap ditanyai materi kapan saja.
-- **Ditenagai Google Gemini 1.5 Flash**: Menjawab dengan konteks profil siswa (nama, level, mapel terkuat/terlemah, akurasi).
+- **Ditenagai Google Gemini 3.7 Flash**: Menjawab dengan konteks profil siswa (nama, level, mapel terkuat/terlemah, akurasi). Key AI Studio baru (`AQ.`) didukung lewat SDK resmi `@google/genai`.
 - **Riwayat Obrolan Tersimpan**: Percakapan bertahan di perangkat (localStorage) dan bisa dihapus kapan saja.
 - **Fallback Offline**: Tanpa `GEMINI_API_KEY` pun bubble tetap membalas dengan tutor lokal berbasis kata kunci.
 
@@ -100,7 +100,7 @@ Didukung oleh integrasi **Google Gemini AI (1.5 Flash/Pro)**, Eduquest mampu mem
 | **State Management** | Zustand v4 | Manajemen state reaktif tersinkronisasi |
 | **Penyimpanan Lokal** | Dexie.js (IndexedDB) | Basis data offline berkecepatan tinggi |
 | **Penyimpanan Cloud** | Vercel KV (@vercel/kv / Redis) | Penyimpanan sesi dan sinkronisasi server |
-| **Kecerdasan Buatan** | Google Gemini API (`gemini-1.5-flash`) | Generasi soal SMP, evaluasi belajar, & AI Bubble Guru AI |
+| **Kecerdasan Buatan** | Google Gemini API (`gemini-3.7-flash`, fallback Flash gratis) | Generasi soal SMP, evaluasi belajar, & AI Bubble Guru AI |
 | **Otentikasi** | NextAuth.js v4 / Auth.js | Wajib Daftar/Login (Kredensial & Google OAuth) + Middleware Proteksi |
 | **Efek Audio** | Web Audio API Synthesizer | Efek suara chiptune 8-bit tanpa dependensi file eksternal |
 | **Testing** | Vitest 2.x | Pengujian unit kalkulator stat, damage, & drop rate |
@@ -288,7 +288,7 @@ Buka `.env.local` dan sesuaikan nilainya:
 ```env
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=eduquest-super-secret-key-32-chars-development
-GEMINI_API_KEY=AIzaSy... (masukkan API Key Gemini Anda jika ada)
+GEMINI_API_KEY=AQ.... (masukkan API Key Gemini dari AI Studio; key baru diawali AQ.)
 ```
 
 ### 4. Jalankan Server Development
@@ -318,7 +318,8 @@ npm start
 |---|---|---|---|
 | `NEXTAUTH_URL` | URL domain aplikasi utama | Wajib | `http://localhost:3000` atau `https://nama-proyek.vercel.app` |
 | `NEXTAUTH_SECRET` | Kunci rahasia enkripsi token JWT | Wajib | String acak 32 karakter (`openssl rand -base64 32`) |
-| `GEMINI_API_KEY` | API Key Google Gemini AI | Opsional (fallback lokal) | `AIzaSyB...` dari AI Studio |
+| `GEMINI_API_KEY` | API Key Google Gemini AI | Opsional (fallback lokal) | `AQ....` (auth key baru) atau `AIza...` dari AI Studio |
+| `GEMINI_MODEL` | Override model Gemini | Opsional | `gemini-3.7-flash` (default, gratis / bukan Pro) |
 | `KV_REST_API_URL` | Endpoint REST Redis Vercel KV | Opsional (fallback IndexedDB) | `https://region.upstash.io` |
 | `KV_REST_API_TOKEN` | Token otorisasi Redis Vercel KV | Opsional | `AXXX...` |
 | `GOOGLE_CLIENT_ID` | Client ID Google OAuth | Opsional | `xxx.apps.googleusercontent.com` |

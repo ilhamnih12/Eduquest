@@ -27,13 +27,13 @@ Sebelum memulai proses deploy, pastikan Anda telah memiliki:
 
 ## Langkah 1: Mendapatkan Google Gemini API Key Gratis
 
-Eduquest menggunakan model `gemini-1.5-flash` untuk menghasilkan soal SMP dinamis dan tips belajar cerdas.
+Eduquest menggunakan model Flash gratis `gemini-3.7-flash` (bukan Pro) untuk menghasilkan soal SMP dinamis dan tips belajar cerdas. Jika model itu tidak tersedia, sistem otomatis mencoba `gemini-3.5-flash` lalu `gemini-2.5-flash`.
 
-1. Buka situs [Google AI Studio](https://aistudio.google.com/).
+1. Buka situs [Google AI Studio](https://aistudio.google.com/apikey).
 2. Masuk menggunakan akun Google Anda.
-3. Klik tombol **"Get API key"** di panel navigasi sebelah kiri.
-4. Klik **"Create API key"** > pilih atau buat proyek Google Cloud baru.
-5. Salin API key yang dihasilkan (dimulai dengan `AIzaSy...`).
+3. Klik tombol **"Get API key"** / **"Create API key"**.
+4. Pilih atau buat proyek Google Cloud baru. Tidak perlu upgrade ke Pro / billing.
+5. Salin API key yang dihasilkan. Key baru biasanya diawali `AQ.` (auth key). Key lama `AIza...` masih bisa dipakai jika masih aktif.
 6. Simpan kunci ini untuk dimasukkan ke dalam environment variable `GEMINI_API_KEY`.
 
 ---

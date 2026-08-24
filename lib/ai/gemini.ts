@@ -1,11 +1,123 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { Subject, GradeLevel, Question } from '@/types/game';
 import { StudyTipsResponse, AiChatMessage, AiChatPlayerContext, AiChatResponse } from '@/types/ai';
-import { getRandomLocalQuestion, getLocalQuestions } from '@/lib/game/question-bank';
+import { getRandomLocalQuestion } from '@/lib/game/question-bank';
+
+/**
+ * Free-tier Flash models on Google AI Studio (no Pro / billing required).
+ * Newest first. `gemini-1.5-flash` was shut down and 404s on current keys.
+ * Auth keys that start with `AQ.` need the official `@google/genai` SDK
+ * (native Gemini endpoint), not the deprecated `@google/generative-ai` package.
+ * Docs: https://ai.google.dev/gemini-api/docs/models
+ */
+export const GEMINI_FREE_FLASH_MODELS = [
+  'gemini-3.7-flash',
+  'gemini-3.5-flash',
+  'gemini-2.5-flash',
+] as const;
+
+export const DEFAULT_GEMINI_MODEL = GEMINI_FREE_FLASH_MODELS[0];
+
+type GeminiContent =
+  | string
+  | Array<{ role: string; parts: Array<{ text: string }> }>;
+
+function resolveGeminiApiKey(): string | null {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey.trim() === '' || apiKey === 'your-gemini-api-key') {
+    return null;
+  }
+  return apiKey.trim();
+}
+
+function resolveModelCandidates(): string[] {
+  const preferred = process.env.GEMINI_MODEL?.trim();
+  if (preferred) {
+    return [preferred, ...GEMINI_FREE_FLASH_MODELS.filter((model) => model !== preferred)];
+  }
+  return [...GEMINI_FREE_FLASH_MODELS];
+}
+
+function isModelUnavailableError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /not found|not supported|NOT_FOUND|404|is not available/i.test(message);
+}
+
+function extractGeminiText(response: {
+  text?: string;
+  candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+}): string {
+  if (response.text && response.text.trim()) {
+    return response.text.trim();
+  }
+  const parts = response.candidates?.[0]?.content?.parts ?? [];
+  return parts.map((part) => part.text ?? '').join('').trim();
+}
+
+export async function generateGeminiText(
+  apiKey: string,
+  contents: GeminiContent,
+  config: {
+    temperature?: number;
+    maxOutputTokens?: number;
+    responseMimeType?: string;
+    systemInstruction?: string;
+  } = {}
+): Promise<string> {
+  const ai = new GoogleGenAI({ apiKey });
+  const models = resolveModelCandidates();
+  let lastError: unknown;
+
+  for (const model of models) {
+    const requestConfigs = [
+      {
+        temperature: config.temperature,
+        maxOutputTokens: config.maxOutputTokens,
+        responseMimeType: config.responseMimeType,
+        systemInstruction: config.systemInstruction,
+        // Keep Flash cheap/fast on the free tier; 3.x Flash thinks by default.
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+      {
+        temperature: config.temperature,
+        maxOutputTokens: config.maxOutputTokens,
+        responseMimeType: config.responseMimeType,
+        systemInstruction: config.systemInstruction,
+      },
+    ];
+
+    for (const requestConfig of requestConfigs) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents,
+          config: requestConfig,
+        });
+        const text = extractGeminiText(response);
+        if (!text) {
+          throw new Error('Empty Gemini response');
+        }
+        return text;
+      } catch (error) {
+        lastError = error;
+        if (isModelUnavailableError(error)) {
+          console.warn(`Gemini model ${model} unavailable, trying next free Flash model:`, error);
+          break;
+        }
+        if (requestConfig.thinkingConfig && !isAuthOrQuotaError(error)) {
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('All Gemini Flash models failed');
+}
 
 /**
  * Generate a multiple-choice question tailored for Indonesian SMP students.
- * Utilizes Gemini 1.5 Flash / Pro with comprehensive fallback to local question bank.
+ * Uses the latest free Gemini Flash model with fallback to the local question bank.
  */
 export async function generateAiQuestion(
   subject: Subject,
@@ -14,23 +126,13 @@ export async function generateAiQuestion(
   topic?: string,
   excludeIds: string[] = []
 ): Promise<Question> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = resolveGeminiApiKey();
 
-  if (!apiKey || apiKey.trim() === '' || apiKey === 'your-gemini-api-key') {
+  if (!apiKey) {
     return getRandomLocalQuestion(subject, grade, excludeIds);
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // Use gemini-1.5-flash for fast and reliable educational generation
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-        temperature: 0.7,
-      },
-    });
-
     const subjectNames: Record<Subject, string> = {
       matematika: 'Matematika (Aljabar, Geometri, Aritmatika, Peluang, Statistika)',
       ipa: 'Ilmu Pengetahuan Alam / IPA (Biologi Sel, Fisika Gerak & Energi, Kimia Dasar, Tata Surya)',
@@ -66,8 +168,10 @@ Format Output WAJIB berupa JSON murni dengan struktur berikut:
   "hint": "petunjuk ringkas untuk siswa"
 }`;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const responseText = await generateGeminiText(apiKey, prompt, {
+      responseMimeType: 'application/json',
+      temperature: 0.7,
+    });
 
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
@@ -114,22 +218,13 @@ export async function generateStudyTips(
   accuracyPercent: number,
   totalAnswered: number
 ): Promise<StudyTipsResponse> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = resolveGeminiApiKey();
 
-  if (!apiKey || apiKey.trim() === '' || apiKey === 'your-gemini-api-key') {
+  if (!apiKey) {
     return generateLocalStudyTips(subject, accuracyPercent, totalAnswered);
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-        temperature: 0.7,
-      },
-    });
-
     const prompt = `Anda adalah AI Guru Pembimbing RPG Edukasi SMP.
 Siswa memiliki statistik performa mata pelajaran "${subject}":
 - Total Soal Dikerjakan: ${totalAnswered}
@@ -148,8 +243,11 @@ Buat rekomendasi belajar pribadi dalam format JSON:
   "motivationalQuote": "Kutipan penyemangat khas petualang cendekiawan"
 }`;
 
-    const result = await model.generateContent(prompt);
-    const jsonMatch = result.response.text().match(/\{[\s\S]*\}/);
+    const responseText = await generateGeminiText(apiKey, prompt, {
+      responseMimeType: 'application/json',
+      temperature: 0.7,
+    });
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('Invalid JSON response');
 
     const parsed = JSON.parse(jsonMatch[0]);
@@ -357,40 +455,30 @@ function localTutorFallback(history: AiChatMessage[], context?: AiChatPlayerCont
 }
 
 /**
- * Chat with the AI Tutor using Gemini 1.5 Flash with conversation history.
+ * Chat with the AI Tutor using the latest free Gemini Flash model.
  * Gracefully falls back to a local keyword-based tutor when offline.
  */
 export async function chatWithAiTutor(
   history: AiChatMessage[],
   context?: AiChatPlayerContext
 ): Promise<AiChatResponse> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = resolveGeminiApiKey();
 
-  if (!apiKey || apiKey.trim() === '' || apiKey === 'your-gemini-api-key') {
+  if (!apiKey) {
     return { reply: localTutorFallback(history, context, false), source: 'local' };
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      systemInstruction: buildTutorSystemPrompt(context),
-      generationConfig: {
-        temperature: 0.8,
-        maxOutputTokens: 600,
-      },
-    });
-
-    // Keep only the most recent turns to stay within token limits
     const recent = history.slice(-12).map((m) => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }],
     }));
 
-    const result = await model.generateContent({ contents: recent });
-    const reply = result.response.text().trim();
-
-    if (!reply) throw new Error('Empty Gemini response');
+    const reply = await generateGeminiText(apiKey, recent, {
+      systemInstruction: buildTutorSystemPrompt(context),
+      temperature: 0.8,
+      maxOutputTokens: 600,
+    });
 
     return { reply, source: 'gemini' };
   } catch (error) {
