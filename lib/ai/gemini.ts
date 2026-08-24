@@ -280,7 +280,7 @@ ATURAN MENJAWAB:
  * Local offline fallback replies when GEMINI_API_KEY is not configured
  * or the Gemini request fails. Keeps the bubble usable at all times.
  */
-function localTutorFallback(history: AiChatMessage[], context?: AiChatPlayerContext): string {
+function localTutorFallback(history: AiChatMessage[], context?: AiChatPlayerContext, envDetected?: boolean): string {
   const lastUser = [...history].reverse().find((m) => m.role === 'user')?.content?.toLowerCase() ?? '';
 
   const name = context?.username ? `, ${context.username}` : ' Petualang';
@@ -349,6 +349,10 @@ function localTutorFallback(history: AiChatMessage[], context?: AiChatPlayerCont
       ? ` Terakhir terlihat di datamu, ${SUBJECT_DISPLAY[context.weakestSubject] || context.weakestSubject} perlu lebih banyak latihan — coba tantangi monster mapel itu di Arena Pertempuran! ⚔️`
       : '';
 
+  if (envDetected === true) {
+    return `Pertanyaan yang menarik${name}! 🤔 Aku mendeteksi GEMINI_API_KEY sudah di-set tapi Google Gemini sedang bermasalah (mungkin key revoked/quota habis).\n\nCoba tanyakan hal spesifik seperti:\n• "Bagaimana cara mengerjakan soal Pythagoras?"\n• "Jelaskan hukum Newton kedua"\n• "Beri aku tips belajar tiap hari"\n\nJika terus bermasalah, minta admin/guru membuat key baru di https://aistudio.google.com/app/apikey lalu update di Vercel.${weakLine}`;
+  }
+
   return `Pertanyaan yang menarik${name}! 🤔 Saat ini aku sedang berjalan dalam mode offline sehingga jawabanku terbatas.\n\nCoba tanyakan hal spesifik seperti:\n• "Bagaimana cara mengerjakan soal Pythagoras?"\n• "Jelaskan hukum Newton kedua"\n• "Beri aku tips belajar tiap hari"\n\nUntuk jawaban AI lengkap berbasis Google Gemini, minta guru/pengamamu menambahkan GEMINI_API_KEY di pengaturan server.${weakLine}`;
 }
 
@@ -363,7 +367,7 @@ export async function chatWithAiTutor(
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey || apiKey.trim() === '' || apiKey === 'your-gemini-api-key') {
-    return { reply: localTutorFallback(history, context), source: 'local' };
+    return { reply: localTutorFallback(history, context, false), source: 'local' };
   }
 
   try {
@@ -391,6 +395,6 @@ export async function chatWithAiTutor(
     return { reply, source: 'gemini' };
   } catch (error) {
     console.warn('Gemini chat tutor failed, falling back to local tutor:', error);
-    return { reply: localTutorFallback(history, context), source: 'local' };
+    return { reply: localTutorFallback(history, context, true), source: 'local' };
   }
 }
