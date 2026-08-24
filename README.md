@@ -79,8 +79,14 @@ Didukung oleh integrasi **Google Gemini AI (1.5 Flash/Pro)**, Eduquest mampu mem
 
 ### 🌐 6. Arsitektur Offline-First & Cloud Sync
 - **IndexedDB via Dexie.js**: Seluruh progres tersimpan otomatis di browser lokal.
-- **Mode Tamu (Guest Mode)**: Langsung bermain tanpa perlu mendaftar atau memasukkan kata sandi.
+- **Wajib Akun Resmi**: Seluruh halaman game diproteksi middleware — mode tamu/akun demo sudah dihapus agar progres & rapor tersimpan aman.
 - **Vercel KV / Redis Cloud Sync**: Sinkronisasi akun antar perangkat saat terhubung internet.
+
+### 💬 7. AI Bubble — Guru AI Eduquest (Gemini)
+- **Widget Obrolan Mengambang**: Bubble "Guru AI" di pojok kanan bawah, siap ditanyai materi kapan saja.
+- **Ditenagai Google Gemini 1.5 Flash**: Menjawab dengan konteks profil siswa (nama, level, mapel terkuat/terlemah, akurasi).
+- **Riwayat Obrolan Tersimpan**: Percakapan bertahan di perangkat (localStorage) dan bisa dihapus kapan saja.
+- **Fallback Offline**: Tanpa `GEMINI_API_KEY` pun bubble tetap membalas dengan tutor lokal berbasis kata kunci.
 
 ---
 
@@ -94,8 +100,8 @@ Didukung oleh integrasi **Google Gemini AI (1.5 Flash/Pro)**, Eduquest mampu mem
 | **State Management** | Zustand v4 | Manajemen state reaktif tersinkronisasi |
 | **Penyimpanan Lokal** | Dexie.js (IndexedDB) | Basis data offline berkecepatan tinggi |
 | **Penyimpanan Cloud** | Vercel KV (@vercel/kv / Redis) | Penyimpanan sesi dan sinkronisasi server |
-| **Kecerdasan Buatan** | Google Gemini API (`gemini-1.5-flash`) | Generasi soal SMP & evaluasi belajar AI |
-| **Otentikasi** | NextAuth.js v4 / Auth.js | Kredensial, Google OAuth, & Mode Tamu |
+| **Kecerdasan Buatan** | Google Gemini API (`gemini-1.5-flash`) | Generasi soal SMP, evaluasi belajar, & AI Bubble Guru AI |
+| **Otentikasi** | NextAuth.js v4 / Auth.js | Wajib Daftar/Login (Kredensial & Google OAuth) + Middleware Proteksi |
 | **Efek Audio** | Web Audio API Synthesizer | Efek suara chiptune 8-bit tanpa dependensi file eksternal |
 | **Testing** | Vitest 2.x | Pengujian unit kalkulator stat, damage, & drop rate |
 | **Deployment** | Vercel Platform | Konfigurasi otomatis zero-config deployment |
@@ -160,7 +166,7 @@ Eduquest/
 ├── app/
 │   ├── (auth)/
 │   │   ├── login/
-│   │   │   └── page.tsx           # Halaman Masuk Akun & Mode Tamu
+│   │   │   └── page.tsx           # Halaman Masuk Akun (Wajib Login)
 │   │   └── register/
 │   │       └── page.tsx        # Halaman Pendaftaran Siswa Baru
 │   ├── (game)/
@@ -208,7 +214,7 @@ Eduquest/
 │   │   ├── ThemeToggle.tsx        # Pengalih Tema Gelap / Terang
 │   │   └── Footer.tsx             # Footer & Atribusi Hak Cipta
 │   └── auth/
-│       ├── LoginForm.tsx          # Form Masuk / Mode Tamu
+│       ├── LoginForm.tsx          # Form Masuk Akun (Tanpa Mode Tamu)
 │       └── RegisterForm.tsx       # Form Registrasi Akun
 ├── lib/
 │   ├── db/
