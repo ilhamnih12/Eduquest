@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { SessionHydrator } from '@/components/auth/SessionHydrator';
+import { AiChatBubble } from '@/components/ai/AiChatBubble';
 
 export const metadata: Metadata = {
   title: 'Eduquest RPG - Game Edukasi SMP Indonesia',
@@ -36,6 +38,10 @@ export default function RootLayout({
           {children}
         </main>
         <Footer />
+        {/* Guru AI Bubble (ditenagai Google Gemini) — tersembunyi otomatis di halaman login/daftar */}
+        <AiChatBubble />
+        {/* Menjaga sinkronisasi sesi login NextAuth dengan state aplikasi */}
+        <SessionHydrator />
       </body>
     </html>
   );

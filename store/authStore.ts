@@ -5,54 +5,45 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  isGuest: boolean;
   setUser: (user: User | null) => void;
-  setGuestUser: (username: string) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
 }
 
+/**
+ * Auth store — Mode Tamu / akun demo sudah DIHAPUS.
+ * Seluruh akses game wajib melalui registrasi atau login (NextAuth).
+ */
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
-  isGuest: false,
   setUser: (user) => {
     set({
       user,
       isAuthenticated: Boolean(user),
-      isGuest: user?.provider === 'guest',
       isLoading: false,
     });
-  },
-  setGuestUser: (username) => {
-    const guestId = `guest-${Date.now()}`;
-    const guestUser: User = {
-      id: guestId,
-      email: `${guestId}@eduquest.local`,
-      username: username.trim() || 'Petualang Cilik',
-      provider: 'guest',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-    };
+    // Sinkronkan key localStorage lawas agar tidak tersisa data tamu usang
     if (typeof window !== 'undefined') {
-      localStorage.setItem('eduquest_guest_user', JSON.stringify(guestUser));
+      try {
+        localStorage.removeItem('eduquest_guest_user');
+      } catch {
+        // abaikan
+      }
     }
-    set({
-      user: guestUser,
-      isAuthenticated: true,
-      isGuest: true,
-      isLoading: false,
-    });
   },
   logout: () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('eduquest_guest_user');
+      try {
+        localStorage.removeItem('eduquest_guest_user');
+      } catch {
+        // abaikan
+      }
     }
     set({
       user: null,
       isAuthenticated: false,
-      isGuest: false,
       isLoading: false,
     });
   },

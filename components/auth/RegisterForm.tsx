@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { useGameStore } from '@/store/gameStore';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -14,6 +15,7 @@ import { UserPlus, Sparkles, Gift, CheckCircle2 } from 'lucide-react';
 export function RegisterForm() {
   const router = useRouter();
   const { initGame } = useGameStore();
+  const { setUser } = useAuthStore();
 
   const [username, setUsername] = React.useState('');
   const [email, setEmail] = React.useState('');
@@ -60,8 +62,20 @@ export function RegisterForm() {
       });
 
       if (signInRes?.error) {
-        throw new Error(signInRes.error);
+        throw new Error(
+          'Pendaftaran berhasil, namun login otomatis gagal. Silakan masuk manual di halaman Masuk.'
+        );
       }
+
+      // Simpan data pengguna ke auth store (wajib login, tanpa mode tamu)
+      setUser({
+        id: data?.user?.id || email,
+        email,
+        username,
+        provider: 'credentials',
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
+      });
 
       // Initialize game state with user details
       await initGame(email, username);

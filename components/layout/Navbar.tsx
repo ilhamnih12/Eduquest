@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import {
   Swords,
   Backpack,
@@ -28,8 +29,9 @@ import { Button } from '@/components/ui/Button';
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { gameState, isInitialized, syncDataToServer } = useGameStore();
-  const { user, isGuest, logout } = useAuthStore();
+  const { user, logout } = useAuthStore();
 
   const [soundEnabled, setSoundEnabled] = React.useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
@@ -46,6 +48,15 @@ export function Navbar() {
     setIsSyncing(true);
     await syncDataToServer();
     setIsSyncing(false);
+  };
+
+  // Logout wajib menghapus cookie sesi NextAuth agar middleware
+  // mengarahkan kembali ke halaman login (tidak ada mode tamu).
+  const handleLogout = async () => {
+    logout();
+    await signOut({ redirect: false });
+    router.push('/login');
+    router.refresh();
   };
 
   const navLinks = [
@@ -186,7 +197,7 @@ export function Navbar() {
                 </div>
               </Link>
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 title="Keluar Akun"
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors"
               >
@@ -268,7 +279,7 @@ export function Navbar() {
             {user ? (
               <button
                 onClick={() => {
-                  logout();
+                  handleLogout();
                   setMobileMenuOpen(false);
                 }}
                 className="text-xs font-bold text-rose-500 flex items-center gap-1"

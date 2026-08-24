@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Subject, GradeLevel, Question } from '@/types/game';
-import { StudyTipsResponse } from '@/types/ai';
+import { StudyTipsResponse, AiChatMessage, AiChatPlayerContext, AiChatResponse } from '@/types/ai';
 import { getRandomLocalQuestion, getLocalQuestions } from '@/lib/game/question-bank';
 
 /**
@@ -229,5 +229,168 @@ function generateLocalStudyTips(
       motivationalQuote: 'Batu yang keras akan berlubang oleh tetesan air yang konsisten. Teruslah berjuang!',
       source: 'local_generator',
     };
+  }
+}
+
+/* ==========================================================================
+ * AI TUTOR CHAT BUBBLE (Gemini)
+ * ========================================================================== */
+
+const SUBJECT_DISPLAY: Record<string, string> = {
+  matematika: 'Matematika',
+  ipa: 'IPA',
+  ips: 'IPS',
+  indonesia: 'Bahasa Indonesia',
+  inggris: 'Bahasa Inggris',
+};
+
+/**
+ * Assemble the system persona/prompt for the AI Tutor bubble.
+ */
+function buildTutorSystemPrompt(context?: AiChatPlayerContext): string {
+  let playerLine = '';
+  if (context) {
+    const parts: string[] = [];
+    if (context.username) parts.push(`nama panggilan "${context.username}"`);
+    if (context.level) parts.push(`Level ${context.level}${context.title ? ` (${context.title})` : ''}`);
+    if (typeof context.accuracy === 'number' && context.accuracy >= 0) {
+      parts.push(`akurasi jawaban keseluruhan ${context.accuracy}%`);
+    }
+    if (context.strongestSubject)
+      parts.push(`mapel terkuat ${SUBJECT_DISPLAY[context.strongestSubject] || context.strongestSubject}`);
+    if (context.weakestSubject)
+      parts.push(`mapel terlemah ${SUBJECT_DISPLAY[context.weakestSubject] || context.weakestSubject}`);
+    if (parts.length > 0) playerLine = `\nProfil siswa yang sedang bertanya: ${parts.join(', ')}.`;
+  }
+
+  return `Kamu adalah "Guru AI Eduquest" — guru pembimbing virtual yang ramah dan menyenangkan di game RPG edukasi Eduquest untuk siswa SMP Indonesia (Kelas 7-9, Kurikulum Merdeka).${playerLine}
+
+ATURAN MENJAWAB:
+1. Jawab selalu dalam Bahasa Indonesia yang santun, hangat, dan mudah dipahami remaja 12-15 tahun (kecuali siswa bertanya dalam Bahasa Inggris, maka jawab dalam Bahasa Inggris).
+2. Fokus membantu materi pelajaran: Matematika, IPA, IPS, Bahasa Indonesia, dan Bahasa Inggris, serta strategi belajar dan tips bermain Eduquest.
+3. Untuk soal matematika: tunjukkan langkah pengerjaan secara bertahap, bukan hanya hasil akhirnya.
+4. Jawaban ringkas dan padat (maksimal sekitar 150 kata). Gunakan bullet/emoji secukupnya agar menyenangkan.
+5. Sesekali gunakan gaya petualangan RPG (pahlawan, monster, quest) untuk memotivasi, tapi tetap edukatif.
+6. Jika pertanyaan di luar topik pendidikan, arahkan dengan halus kembali ke belajar.
+7. JANGAN pernah memberikan konten tidak pantas, kata-kata kasar, atau jawaban yang menyesatkan.
+8. Jangan mengaku sebagai manusia — kamu adalah AI yang siap membantu.`;
+}
+
+/**
+ * Local offline fallback replies when GEMINI_API_KEY is not configured
+ * or the Gemini request fails. Keeps the bubble usable at all times.
+ */
+function localTutorFallback(history: AiChatMessage[], context?: AiChatPlayerContext): string {
+  const lastUser = [...history].reverse().find((m) => m.role === 'user')?.content?.toLowerCase() ?? '';
+
+  const name = context?.username ? `, ${context.username}` : ' Petualang';
+
+  const rules: Array<{ keywords: string[]; reply: (t: string) => string }> = [
+    {
+      keywords: ['pythagoras', 'pytagoras'],
+      reply: () =>
+        'Rumus Pythagoras: a² + b² = c², di mana c adalah sisi terpanjang (hipotenusa).\nLangkah mengerjakan:\n1. Tentukan sisi mana yang paling panjang.\n2. Substitusikan dua sisi yang diketahui ke rumus.\n3. Selesaikan pangkat dua, lalu akarkan.\nContoh: sisi 6 dan 8 → c² = 36 + 64 = 100 → c = 10. 📐',
+    },
+    {
+      keywords: ['luas', 'keliling', 'lingkaran'],
+      reply: () =>
+        'Ingat rumus lingkaran yuk! 🥧\n• Keliling = 2 × π × r (atau π × d)\n• Luas = π × r²\nTips: π biasanya dibulatkan 22/7 (r kelipatan 7) atau 3,14. Tulis dulu rumusnya, lalu masukkan angkanya pelan-pelan.',
+    },
+    {
+      keywords: ['aljabar', 'persamaan', 'spldv', 'variabel', 'x ='],
+      reply: () =>
+        'Kunci aljabar adalah "kerjakan hal yang sama di kedua ruas"! ⚖️\nContoh: 2x + 3 = 11\n1. Kurangi kedua ruas dengan 3 → 2x = 8\n2. Bagi kedua ruas dengan 2 → x = 4\nUntuk SPLDV, gunakan eliminasi (jumlahkan/kurangkan persamaan) atau substitusi.',
+    },
+    {
+      keywords: ['newton', 'hukum gerak', 'gaya', 'fisika'],
+      reply: () =>
+        'Hukum Newton: 🍎\n1. Newton I: benda diam tetap diam, bergerak tetap bergerak (inersia) jika gaya resultan = 0.\n2. Newton II: F = m × a (gaya = massa × percepatan).\n3. Newton III: aksi-reaksi — setiap gaya punya pasangan yang sama besar, arah berlawanan.\nTips soal: selalu tulis besaran yang diketahui dulu!',
+    },
+    {
+      keywords: ['fotosintesis', 'tumbuhan', 'klorofil'],
+      reply: () =>
+        'Fotosintesis 🌱 = proses tumbuhan hijau membuat makanan sendiri.\nRumus: 6CO₂ + 6H₂O + cahaya matahari → C₆H₁₂O₆ (glukosa) + 6O₂\nTerjadi di kloroplas yang mengandung klorofil. Hasilnya glukosa untuk energi dan oksigen untuk kita bernapas!',
+    },
+    {
+      keywords: ['proklamasi', 'kemerdekaan', '1945', 'sejarah'],
+      reply: () =>
+        'Proklamasi Kemerdekaan RI dibacakan Soekarno didampingi Mohammad Hatta pada 17 Agustus 1945 di Jalan Pegangsaan Timur 56, Jakarta. 🇮🇩 Skrip teks diketik oleh Sayuti Melik. Ini puncak perjuangan setelah penjajahan Jepang berakhir pasca-PD II.',
+    },
+    {
+      keywords: ['grammar', 'tense', 'bahasa inggris', 'present', 'past'],
+      reply: () =>
+        'Rahasia tenses: lihat keterangan waktunya! ⏰\n• Simple Present (V1/s-es): every day, always → "She studies every night."\n• Simple Past (V2): yesterday, last year → "I went to Bali."\n• Present Continuous (am/is/are + V-ing): now → "They are studying."\nTips: hafalkan daftar Verb 1-2-3 untuk irregular verbs ya!',
+    },
+    {
+      keywords: ['majas', 'puisi', 'cerpen', 'deskripsi'],
+      reply: () =>
+        'Majas itu bahasa kias yang bikin tulisan hidup! ✨\n• Simile: "pandai seperti kutubuku" (pembanding: seperti, bagaikan)\n• Metafora: "dia tulang punggung keluarga" (langsung)\n• Personifikasi: benda mati bertindak seperti manusia — "angin berbisik"\n• Hiperbola: melebih-lebihkan — "tangismya membanjiri kota"',
+    },
+    {
+      keywords: ['belajar', 'tips', 'cara belajar', 'malas', 'motivasi'],
+      reply: () =>
+        'Strategi belajar para petualang hebat: 🗡️\n1. Belajar 25 menit lalu istirahat 5 menit (teknik Pomodoro).\n2. Latih soal sedikit tiap hari — konsistensi mengalahkan kecepatan!\n3. Untuk rumus, buat kartu hafalan dan tempel di meja belajar.\n4. Jelaskan ulang materi dengan bahasamu sendiri (metode Feynman).\n5. Cukup tidur 8 jam — otak menghafal saat tidur! 😴',
+    },
+    {
+      keywords: ['halo', 'hai', 'hello', 'hi', 'assalam', 'selamat'],
+      reply: () =>
+        `Halo${name}! 👋 Aku Guru AI Eduquest, siap menemanimu berpetualang!\nTanyakan apa saja soal materi SMP: Matematika, IPA, IPS, Bahasa Indonesia, atau Bahasa Inggris. Kamu juga bisa minta tips belajar. Apa yang ingin kamu pelajari hari ini? 🌟`,
+    },
+  ];
+
+  for (const rule of rules) {
+    if (rule.keywords.some((k) => lastUser.includes(k))) {
+      return rule.reply('');
+    }
+  }
+
+  const weakLine =
+    context?.weakestSubject
+      ? ` Terakhir terlihat di datamu, ${SUBJECT_DISPLAY[context.weakestSubject] || context.weakestSubject} perlu lebih banyak latihan — coba tantangi monster mapel itu di Arena Pertempuran! ⚔️`
+      : '';
+
+  return `Pertanyaan yang menarik${name}! 🤔 Saat ini aku sedang berjalan dalam mode offline sehingga jawabanku terbatas.\n\nCoba tanyakan hal spesifik seperti:\n• "Bagaimana cara mengerjakan soal Pythagoras?"\n• "Jelaskan hukum Newton kedua"\n• "Beri aku tips belajar tiap hari"\n\nUntuk jawaban AI lengkap berbasis Google Gemini, minta guru/pengamamu menambahkan GEMINI_API_KEY di pengaturan server.${weakLine}`;
+}
+
+/**
+ * Chat with the AI Tutor using Gemini 1.5 Flash with conversation history.
+ * Gracefully falls back to a local keyword-based tutor when offline.
+ */
+export async function chatWithAiTutor(
+  history: AiChatMessage[],
+  context?: AiChatPlayerContext
+): Promise<AiChatResponse> {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey || apiKey.trim() === '' || apiKey === 'your-gemini-api-key') {
+    return { reply: localTutorFallback(history, context), source: 'local' };
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      systemInstruction: buildTutorSystemPrompt(context),
+      generationConfig: {
+        temperature: 0.8,
+        maxOutputTokens: 600,
+      },
+    });
+
+    // Keep only the most recent turns to stay within token limits
+    const recent = history.slice(-12).map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+
+    const result = await model.generateContent({ contents: recent });
+    const reply = result.response.text().trim();
+
+    if (!reply) throw new Error('Empty Gemini response');
+
+    return { reply, source: 'gemini' };
+  } catch (error) {
+    console.warn('Gemini chat tutor failed, falling back to local tutor:', error);
+    return { reply: localTutorFallback(history, context), source: 'local' };
   }
 }

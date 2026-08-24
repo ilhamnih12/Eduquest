@@ -22,6 +22,25 @@ export interface GenerateQuestionResponse {
   source: 'gemini' | 'local_bank';
 }
 
+export interface AiChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface AiChatPlayerContext {
+  username?: string;
+  level?: number;
+  title?: string;
+  strongestSubject?: string;
+  weakestSubject?: string;
+  accuracy?: number;
+}
+
+export interface AiChatResponse {
+  reply: string;
+  source: 'gemini' | 'local';
+}
+
 export interface StudyTipsRequest {
   subject: Subject;
   accuracy: number;

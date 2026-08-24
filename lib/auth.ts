@@ -12,31 +12,11 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: 'Email', type: 'email', placeholder: 'siswa@smp.sch.id' },
         password: { label: 'Password', type: 'password' },
-        isGuest: { label: 'isGuest', type: 'text' },
-        guestUsername: { label: 'guestUsername', type: 'text' },
       },
       async authorize(credentials) {
         if (!credentials) return null;
 
-        // Handle Guest Mode instant login
-        if (credentials.isGuest === 'true') {
-          const guestId = `guest-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-          const guestUser: User = {
-            id: guestId,
-            email: `tamu_${guestId}@eduquest.local`,
-            username: credentials.guestUsername?.trim() || 'Petualang Cilik',
-            provider: 'guest',
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-          };
-          return {
-            id: guestUser.id,
-            email: guestUser.email,
-            name: guestUser.username,
-            provider: 'guest',
-          };
-        }
-
+        // Mode tamu/demo sudah dihapus — wajib akun terdaftar
         const email = credentials.email?.toLowerCase().trim();
         const password = credentials.password;
 

@@ -3,7 +3,7 @@ export interface User {
   email: string;
   username: string;
   passwordHash?: string;
-  provider: 'credentials' | 'google' | 'guest';
+  provider: 'credentials' | 'google';
   avatar?: string;
   createdAt: string;
   lastLogin: string;
@@ -15,7 +15,7 @@ export interface AuthSession {
     email: string;
     username: string;
     avatar?: string;
-    provider: 'credentials' | 'google' | 'guest';
+    provider: 'credentials' | 'google';
   };
   expires: string;
 }
