@@ -43,6 +43,13 @@ function isModelUnavailableError(error: unknown): boolean {
   return /not found|not supported|NOT_FOUND|404|is not available/i.test(message);
 }
 
+function isAuthOrQuotaError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /401|403|429|UNAUTHENTICATED|PERMISSION_DENIED|RESOURCE_EXHAUSTED|invalid.?api.?key|API key/i.test(
+    message
+  );
+}
+
 function extractGeminiText(response: {
   text?: string;
   candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
