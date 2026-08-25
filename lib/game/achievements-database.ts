@@ -1,4 +1,17 @@
-import { Achievement, GameStatistics, Character } from '@/types/game';
+import { Achievement, GameStatistics, Character, Subject } from '@/types/game';
+
+const SUBJECT_ACHIEVEMENT_IDS: Record<string, Subject> = {
+  math_master: 'matematika',
+  science_master: 'ipa',
+  social_master: 'ips',
+  indo_master: 'indonesia',
+  english_master: 'inggris',
+  javanese_master: 'jawa',
+  informatics_master: 'informatika',
+  music_master: 'musik',
+  pjok_master: 'pjok',
+  pancasila_master: 'pkn',
+};
 
 export const INITIAL_ACHIEVEMENTS: Achievement[] = [
   {
@@ -170,7 +183,45 @@ export const INITIAL_ACHIEVEMENTS: Achievement[] = [
     rewardGold: 150,
     rewardExp: 200,
   },
+  ...([
+    ['javanese_master', 'Wiyata Basa Jawa', 'Jawab 10 soal Bahasa Jawa dengan benar.', 'Landmark'],
+    ['informatics_master', 'Penakluk Bug', 'Jawab 10 soal Informatika dengan benar.', 'Code2'],
+    ['music_master', 'Maestro Muda', 'Jawab 10 soal Seni Musik dengan benar.', 'Music2'],
+    ['pjok_master', 'Juara Hidup Aktif', 'Jawab 10 soal PJOK dengan benar.', 'Activity'],
+    ['pancasila_master', 'Pelajar Pancasila', 'Jawab 10 soal Pendidikan Pancasila dengan benar.', 'ShieldCheck'],
+  ] as const).map(([id, title, description, icon]) => ({
+    id,
+    title,
+    description,
+    icon,
+    category: 'study' as const,
+    requirement: 10,
+    currentProgress: 0,
+    unlocked: false,
+    unlockedAt: null,
+    rewardGold: 150,
+    rewardExp: 200,
+  })),
 ];
+
+/** Keep saved unlock progress while taking labels, requirements, and rewards from the current catalog. */
+export function normalizeAchievements(
+  savedAchievements: Achievement[] | null | undefined
+): Achievement[] {
+  const saved = Array.isArray(savedAchievements) ? savedAchievements : [];
+
+  return INITIAL_ACHIEVEMENTS.map((achievement) => {
+    const previous = saved.find((item) => item.id === achievement.id);
+    if (!previous) return { ...achievement };
+
+    return {
+      ...achievement,
+      currentProgress: Math.max(0, Number(previous.currentProgress) || 0),
+      unlocked: previous.unlocked === true,
+      unlockedAt: previous.unlockedAt ?? null,
+    };
+  });
+}
 
 /**
  * Recalculate achievements progress and trigger unlocks
@@ -193,40 +244,31 @@ export function checkAchievements(
     if (ach.unlocked) return ach;
 
     let progress = 0;
-    switch (ach.id) {
-      case 'first_victory':
-      case 'battle_5':
-      case 'battle_20':
-        progress = stats.victories;
-        break;
-      case 'streak_5':
-      case 'streak_10':
-        progress = stats.bestStreak;
-        break;
-      case 'level_5':
-      case 'level_10':
-        progress = character.level;
-        break;
-      case 'gold_500':
-        progress = stats.goldEarnedTotal || character.gold;
-        break;
-      case 'math_master':
-        progress = stats.subjectPerformance?.matematika?.correct || 0;
-        break;
-      case 'science_master':
-        progress = stats.subjectPerformance?.ipa?.correct || 0;
-        break;
-      case 'social_master':
-        progress = stats.subjectPerformance?.ips?.correct || 0;
-        break;
-      case 'indo_master':
-        progress = stats.subjectPerformance?.indonesia?.correct || 0;
-        break;
-      case 'english_master':
-        progress = stats.subjectPerformance?.inggris?.correct || 0;
-        break;
-      default:
-        progress = ach.currentProgress;
+    const achievementSubject = SUBJECT_ACHIEVEMENT_IDS[ach.id];
+
+    if (achievementSubject) {
+      progress = stats.subjectPerformance?.[achievementSubject]?.correct || 0;
+    } else {
+      switch (ach.id) {
+        case 'first_victory':
+        case 'battle_5':
+        case 'battle_20':
+          progress = stats.victories;
+          break;
+        case 'streak_5':
+        case 'streak_10':
+          progress = stats.bestStreak;
+          break;
+        case 'level_5':
+        case 'level_10':
+          progress = character.level;
+          break;
+        case 'gold_500':
+          progress = stats.goldEarnedTotal || character.gold;
+          break;
+        default:
+          progress = ach.currentProgress;
+      }
     }
 
     const isNowUnlocked = progress >= ach.requirement;

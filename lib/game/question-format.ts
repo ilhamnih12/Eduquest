@@ -199,15 +199,36 @@ export function formatMathText(input: string): string {
     .trim();
 }
 
+/**
+ * Preserve authored paragraphs and make common AI section labels readable even
+ * when a model returns them on one long line.
+ */
+export function formatStructuredText(input: string): string {
+  if (!input) return input;
+
+  const sectionLabels =
+    'Konteks|Data|Wacan(?: cekak)?|Pethikan|Kode semu|Langkah(?:-langkah)?|Pertanyaan|Pitakon|Pembahasan|Contoh';
+  const labelPattern = new RegExp(`(^|[\\s]+)(${sectionLabels}):[ \\t]*`, 'gi');
+
+  return formatMathText(input)
+    .replace(/\r\n?/g, '\n')
+    .replace(labelPattern, (_match, prefix: string, label: string) =>
+      `${prefix ? '\n\n' : ''}${label}:\n`
+    )
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 /** Format seluruh bagian teks dari sebuah pertanyaan. */
 export function formatQuestion(question: Question): Question {
   return {
     ...question,
     topic: formatMathText(question.topic),
-    question: formatMathText(question.question),
-    options: question.options.map((option) => formatMathText(option)),
-    explanation: formatMathText(question.explanation),
-    hint: question.hint ? formatMathText(question.hint) : question.hint,
+    question: formatStructuredText(question.question),
+    options: question.options.map((option) => formatStructuredText(option)),
+    explanation: formatStructuredText(question.explanation),
+    hint: question.hint ? formatStructuredText(question.hint) : question.hint,
   };
 }
 

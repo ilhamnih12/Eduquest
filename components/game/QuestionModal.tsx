@@ -110,7 +110,7 @@ export function QuestionModal({
           <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-edu-accentLight/15 text-edu-accentLight dark:text-edu-accentDark text-xs font-black flex-shrink-0 mt-0.5">
             ?
           </span>
-          <h2 className="text-base sm:text-lg font-bold leading-relaxed text-edu-textLight dark:text-edu-textDark">
+          <h2 className="whitespace-pre-wrap text-base sm:text-lg font-bold leading-relaxed text-edu-textLight dark:text-edu-textDark">
             {formatMathText(question.question)}
           </h2>
         </div>
@@ -118,7 +118,7 @@ export function QuestionModal({
         {question.hint && !isAnswerSubmitted && (
           <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-200">
             <Lightbulb className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-            <div>
+            <div className="whitespace-pre-wrap leading-relaxed">
               <span className="font-bold">Petunjuk Guru:</span> {formatMathText(question.hint)}
             </div>
           </div>
@@ -165,7 +165,7 @@ export function QuestionModal({
               >
                 {optionLetters[index]}
               </span>
-              <span className="flex-1 leading-snug">{formatMathText(option)}</span>
+              <span className="flex-1 whitespace-pre-wrap leading-relaxed">{formatMathText(option)}</span>
             </button>
           );
         })}
@@ -193,7 +193,7 @@ export function QuestionModal({
               </>
             )}
           </div>
-          <p className="text-xs leading-relaxed opacity-90 pl-7">
+          <p className="whitespace-pre-wrap text-xs leading-relaxed opacity-90 pl-7">
             <span className="font-bold">Pembahasan:</span> {formatMathText(question.explanation)}
           </p>
         </div>

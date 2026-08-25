@@ -4,6 +4,8 @@ import * as React from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { Subject, GradeLevel } from '@/types/game';
 import { getCurriculumTopics } from '@/lib/game/curriculum';
+import { SUBJECTS } from '@/lib/game/subjects';
+import { getEnemyEscapeRoast } from '@/lib/game/enemies-database';
 import { getSubjectMeta } from '@/lib/utils';
 import { EnemyCard } from './EnemyCard';
 import { CharacterCard } from './CharacterCard';
@@ -19,12 +21,30 @@ import {
   Globe2,
   BookOpen,
   Languages,
+  Landmark,
+  Code2,
+  Music2,
+  Activity,
+  ShieldCheck,
   Sparkles,
   ArrowLeft,
   Flame,
   Shield,
   Zap,
 } from 'lucide-react';
+
+const SUBJECT_ICONS = {
+  calculator: Calculator,
+  flask: FlaskConical,
+  globe: Globe2,
+  book: BookOpen,
+  languages: Languages,
+  landmark: Landmark,
+  code: Code2,
+  music: Music2,
+  activity: Activity,
+  shield: ShieldCheck,
+};
 
 export function BattleSystem() {
   const {
@@ -43,6 +63,7 @@ export function BattleSystem() {
   const [selectedGrade, setSelectedGrade] = React.useState<GradeLevel>(7);
   const [selectedTopicId, setSelectedTopicId] = React.useState('random');
   const [isStartingBattle, setIsStartingBattle] = React.useState(false);
+  const [escapeRoast, setEscapeRoast] = React.useState<string | null>(null);
 
   const curriculumTopics = getCurriculumTopics(selectedSubject, selectedGrade);
   const selectedTopic = curriculumTopics.find((item) => item.id === selectedTopicId);
@@ -53,13 +74,12 @@ export function BattleSystem() {
     setSelectedTopicId('random');
   }, [selectedSubject, selectedGrade]);
 
-  const subjects: { id: Subject; name: string; icon: React.ComponentType<{ className?: string }>; desc: string }[] = [
-    { id: 'matematika', name: 'Matematika', icon: Calculator, desc: 'Aljabar, Geometri, Pythagoras, SPLDV & Pola Bilangan' },
-    { id: 'ipa', name: 'Ilmu Pengetahuan Alam (IPA)', icon: FlaskConical, desc: 'Organisasi Sel, Hukum Newton, Kalor & Listrik' },
-    { id: 'ips', name: 'Ilmu Pengetahuan Sosial (IPS)', icon: Globe2, desc: 'Letak Geografis, Kerajaan Nusantara, ASEAN & Pasar' },
-    { id: 'indonesia', name: 'Bahasa Indonesia', icon: BookOpen, desc: 'Teks Deskripsi, Majas, Cerpen, Resensi & EYD/PUEBI' },
-    { id: 'inggris', name: 'Bahasa Inggris', icon: Languages, desc: 'Grammar, Tenses, Narrative, Passive Voice & Vocabulary' },
-  ];
+  const subjects = SUBJECTS.map((subject) => ({
+    id: subject.id,
+    name: subject.name,
+    icon: SUBJECT_ICONS[subject.icon],
+    desc: subject.description,
+  }));
 
   const handleStart = async (subj: Subject, grade: GradeLevel, topic?: string) => {
     setIsStartingBattle(true);
@@ -68,6 +88,17 @@ export function BattleSystem() {
     } finally {
       setIsStartingBattle(false);
     }
+  };
+
+  const askToEscape = () => {
+    if (battleState.enemy) {
+      setEscapeRoast(getEnemyEscapeRoast(battleState.enemy));
+    }
+  };
+
+  const confirmEscape = () => {
+    setEscapeRoast(null);
+    closeBattleModal();
   };
 
   // If no battle is active, show the Arena Subject Selection Screen
@@ -255,7 +286,7 @@ export function BattleSystem() {
           <Button
             size="sm"
             variant="outline"
-            onClick={closeBattleModal}
+            onClick={askToEscape}
             className="text-xs font-bold"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
@@ -333,6 +364,47 @@ export function BattleSystem() {
         rewards={battleState.rewards}
         onPlayAgain={() => handleStart(battleState.subject, battleState.grade, battleState.topic || undefined)}
       />
+
+      {/* A playful enemy roast doubles as an explicit escape confirmation. */}
+      {escapeRoast && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/65 px-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="escape-dialog-title"
+        >
+          <div className="w-full max-w-md overflow-hidden rounded-3xl border border-rose-400/30 bg-edu-cardLight dark:bg-edu-cardDark shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="bg-gradient-to-r from-rose-500/15 to-amber-500/15 px-6 py-5 text-center">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border-2 border-rose-400/30 bg-white/70 text-5xl shadow-lg dark:bg-slate-900/70">
+                {enemy.avatar}
+              </div>
+              <p className="mt-3 text-[11px] font-black uppercase tracking-[0.2em] text-rose-500">
+                Roast dari {enemy.name}
+              </p>
+              <h2 id="escape-dialog-title" className="mt-1 text-xl font-black text-edu-textLight dark:text-edu-textDark">
+                Yakin mau kabur?
+              </h2>
+            </div>
+
+            <div className="space-y-5 px-6 py-5">
+              <blockquote className="rounded-2xl border border-amber-400/30 bg-amber-50 px-4 py-3 text-center text-sm font-bold leading-relaxed text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
+                “{escapeRoast}”
+              </blockquote>
+              <p className="text-center text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                Kalau kabur, progres pertempuran ini tidak memberi hadiah. Kamu masih bisa batal dan lanjut melawan.
+              </p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <Button variant="outline" onClick={() => setEscapeRoast(null)} className="font-bold">
+                  Lanjut Bertarung
+                </Button>
+                <Button variant="danger" onClick={confirmEscape} className="font-bold">
+                  Iya, Aku Kabur
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

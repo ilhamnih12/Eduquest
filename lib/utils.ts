@@ -20,78 +20,10 @@ export function formatNumber(num: number): string {
 }
 
 /**
- * Subject metadata helper (Name, Color, Icon name, Description)
+ * Backward-compatible subject metadata helper. The canonical data now lives
+ * in lib/game/subjects.ts.
  */
-export function getSubjectMeta(subject: string) {
-  switch (subject) {
-    case 'matematika':
-      return {
-        id: 'matematika',
-        name: 'Matematika',
-        shortName: 'MTK',
-        color: '#E06C75',
-        badgeClass: 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30',
-        bgGradient: 'from-rose-500/20 to-red-600/20',
-        icon: 'Calculator',
-        desc: 'Aljabar, Geometri, Aritmatika, & Pola Bilangan',
-      };
-    case 'ipa':
-      return {
-        id: 'ipa',
-        name: 'Ilmu Pengetahuan Alam (IPA)',
-        shortName: 'IPA',
-        color: '#98C379',
-        badgeClass: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
-        bgGradient: 'from-emerald-500/20 to-teal-600/20',
-        icon: 'FlaskConical',
-        desc: 'Biologi, Fisika, Kimia Dasar, & Tata Surya',
-      };
-    case 'ips':
-      return {
-        id: 'ips',
-        name: 'Ilmu Pengetahuan Sosial (IPS)',
-        shortName: 'IPS',
-        color: '#D19A66',
-        badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
-        bgGradient: 'from-amber-500/20 to-yellow-600/20',
-        icon: 'Globe2',
-        desc: 'Sejarah, Geografi, Ekonomi, & Sosiologi',
-      };
-    case 'indonesia':
-      return {
-        id: 'indonesia',
-        name: 'Bahasa Indonesia',
-        shortName: 'IND',
-        color: '#61AFEF',
-        badgeClass: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
-        bgGradient: 'from-blue-500/20 to-indigo-600/20',
-        icon: 'BookOpen',
-        desc: 'Tata Bahasa, Teks Sastra, Gagasan Utama, & EYD',
-      };
-    case 'inggris':
-      return {
-        id: 'inggris',
-        name: 'Bahasa Inggris',
-        shortName: 'ENG',
-        color: '#C678DD',
-        badgeClass: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30',
-        bgGradient: 'from-purple-500/20 to-violet-600/20',
-        icon: 'Languages',
-        desc: 'Vocabulary, Grammar, Reading, & Conversation',
-      };
-    default:
-      return {
-        id: 'general',
-        name: 'Edukasi Umum',
-        shortName: 'UMUM',
-        color: '#88C0D0',
-        badgeClass: 'bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/30',
-        bgGradient: 'from-slate-500/20 to-zinc-600/20',
-        icon: 'Sparkles',
-        desc: 'Pengetahuan Umum SMP',
-      };
-  }
-}
+export { getSubjectMetadata as getSubjectMeta } from '@/lib/game/subjects';
 
 /**
  * Web Audio API synthesizer for instant 8-bit / fantasy RPG sound effects.

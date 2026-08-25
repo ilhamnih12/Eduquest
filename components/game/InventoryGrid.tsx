@@ -143,7 +143,7 @@ export function InventoryGrid() {
               Tas & Perlengkapan Karakter
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Kelola senjata, jubah zirah, dan ramuan pendukung pertempuran.
+              Kelola senjata, armor, dan ramuan pendukung pertempuran.
             </p>
           </div>
         </div>
@@ -203,7 +203,7 @@ export function InventoryGrid() {
               🛡️
             </div>
             <div>
-              <p className="text-[10px] uppercase font-bold text-slate-400">Zirah Pelindung Terpasang</p>
+              <p className="text-[10px] uppercase font-bold text-slate-400">Armor Pelindung Terpasang</p>
               <h4 className="text-sm font-black text-edu-textLight dark:text-edu-textDark">
                 {equippedArmor ? equippedArmor.name : 'Pakaian Biasa'}
               </h4>

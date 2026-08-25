@@ -4,6 +4,7 @@ import { StudyTipsResponse, AiChatMessage, AiChatPlayerContext, AiChatResponse }
 import { getRandomLocalQuestion } from '@/lib/game/question-bank';
 import { formatQuestion } from '@/lib/game/question-format';
 import { getCurriculumTopics } from '@/lib/game/curriculum';
+import { getSubjectMetadata, SUBJECTS } from '@/lib/game/subjects';
 
 /**
  * Flash models on Google AI Studio, newest first. The list follows the
@@ -16,6 +17,7 @@ export const GEMINI_FREE_FLASH_MODELS = [
   'gemini-3.7-flash',
   'gemini-3.6-flash',
   'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
   'gemini-2.5-flash',
 ] as const;
@@ -149,13 +151,8 @@ export async function generateAiQuestion(
   }
 
   try {
-    const subjectNames: Record<Subject, string> = {
-      matematika: 'Matematika (Aljabar, Geometri, Aritmatika, Peluang, Statistika)',
-      ipa: 'Ilmu Pengetahuan Alam / IPA (Biologi Sel, Fisika Gerak & Energi, Kimia Dasar, Tata Surya)',
-      ips: 'Ilmu Pengetahuan Sosial / IPS (Geografi Indonesia, Sejarah Kerajaan & Kemerdekaan, Ekonomi, Sosiologi)',
-      indonesia: 'Bahasa Indonesia (Teks Deskripsi, Teks Eksplanasi, Majas, Cerpen, EYD/PUEBI, Gagasan Pokok)',
-      inggris: 'Bahasa Inggris (Grammar, Tenses, Reading Comprehension, Vocabulary, Descriptive/Narrative Text)',
-    };
+    const subjectMetadata = getSubjectMetadata(subject);
+    const subjectPromptName = `${subjectMetadata.name} (${subjectMetadata.description})`;
 
     const topicChoices = getCurriculumTopics(subject, grade).map((item) => item.name).join(', ');
     const promptVariationSeed = variationSeed || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -163,7 +160,7 @@ export async function generateAiQuestion(
       ? previousQuestionTexts.map((text, index) => `${index + 1}. ${text}`).join('\n')
       : 'Belum ada soal sebelumnya.';
     const prompt = `Anda adalah guru SMP Indonesia yang ramah dan mengikuti Kurikulum Merdeka Fase D.
-Buat 1 soal pilihan ganda baru untuk ${subjectNames[subject]} kelas ${grade} dengan tingkat kesulitan "${difficulty}"${topic ? ` dan subbab wajib "${topic}"` : ''}.
+Buat 1 soal pilihan ganda baru untuk ${subjectPromptName} kelas ${grade} dengan tingkat kesulitan "${difficulty}"${topic ? ` dan subbab wajib "${topic}"` : ''}.
 
 Daftar subbab yang boleh dipakai: ${topicChoices || 'materi inti kelas ini'}.
 Gunakan seed variasi ${promptVariationSeed}. Seed ini hanya untuk membantu memilih konteks yang berbeda.
@@ -179,16 +176,18 @@ Syarat wajib:
 6. Penjelasan cukup singkat tetapi membantu, dengan langkah yang mudah diikuti.
 7. Petunjuk jangan langsung membocorkan jawaban.
 8. Untuk matematika atau perhitungan IPA, WAJIB gunakan teks biasa: gunakan × untuk kali, ÷ untuk bagi, → untuk langkah, dan pangkat Unicode seperti x². Jangan gunakan tanda dolar, LaTeX, caret seperti x^2, atau garis miring sebagai tanda pembagian.
+9. Buat teks gampang dipindai. Jika soal memiliki skenario, data, kutipan, atau kode, pisahkan dengan baris kosong dan label yang natural, misalnya "Konteks:\\n...\\n\\nPertanyaan:\\n...". Jangan memaksakan label pada soal satu kalimat.
+10. Jika pembahasan punya beberapa langkah, pisahkan tiap langkah dengan \\n. Opsi juga boleh memakai \\n jika berisi beberapa pernyataan. Gunakan escape newline JSON yang valid, bukan Markdown.
 
 Format output WAJIB JSON murni:
 {
   "topic": "nama subbab singkat",
   "difficulty": "${difficulty}",
-  "question": "teks pertanyaan yang jelas",
+  "question": "Konteks jika perlu\\n\\nPertanyaan yang jelas",
   "options": ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D"],
   "correctAnswer": 0,
-  "explanation": "penjelasan langkah demi langkah dengan bahasa ringan",
-  "hint": "petunjuk ringkas untuk siswa"
+  "explanation": "Penjelasan ringan, dengan langkah pada baris terpisah jika perlu",
+  "hint": "Petunjuk ringkas untuk siswa"
 }`;
 
     const responseText = await generateGeminiText(apiKey, prompt, {
@@ -298,15 +297,7 @@ function generateLocalStudyTips(
   accuracy: number,
   totalAnswered: number
 ): StudyTipsResponse {
-  const subjectNameMap: Record<Subject, string> = {
-    matematika: 'Matematika',
-    ipa: 'IPA',
-    ips: 'IPS',
-    indonesia: 'Bahasa Indonesia',
-    inggris: 'Bahasa Inggris',
-  };
-
-  const name = subjectNameMap[subject];
+  const name = getSubjectMetadata(subject).name;
 
   if (accuracy >= 80) {
     return {
@@ -357,13 +348,9 @@ function generateLocalStudyTips(
  * AI TUTOR CHAT BUBBLE (Gemini)
  * ========================================================================== */
 
-const SUBJECT_DISPLAY: Record<string, string> = {
-  matematika: 'Matematika',
-  ipa: 'IPA',
-  ips: 'IPS',
-  indonesia: 'Bahasa Indonesia',
-  inggris: 'Bahasa Inggris',
-};
+const SUBJECT_DISPLAY: Record<string, string> = Object.fromEntries(
+  SUBJECTS.map((subject) => [subject.id, subject.name])
+);
 
 /**
  * Assemble the system persona/prompt for the AI Tutor bubble.
@@ -389,7 +376,7 @@ function buildTutorSystemPrompt(context?: AiChatPlayerContext): string {
 ATURAN MENJAWAB:
 1. Jawab dalam Bahasa Indonesia yang santun, hangat, dan gampang dipahami remaja 12–15 tahun (kecuali siswa bertanya dalam Bahasa Inggris, maka jawab dalam Bahasa Inggris).
 2. Pakai gaya ngobrol yang wajar, tidak kaku dan tidak terlalu baku. Gunakan “kamu” seperlunya, tetapi tetap sopan dan pantas dibaca guru.
-3. Fokus membantu Matematika, IPA, IPS, Bahasa Indonesia, Bahasa Inggris, strategi belajar, dan tips bermain Eduquest.
+3. Fokus membantu 10 mapel Eduquest: ${SUBJECTS.map((subject) => subject.name).join(', ')}, strategi belajar, dan tips bermain Eduquest.
 4. Untuk matematika: jelaskan langkahnya, bukan hanya hasil akhir. Tulis × untuk kali, ÷ untuk bagi, → untuk langkah, dan pangkat Unicode seperti x². Jangan pakai tanda dolar, LaTeX, caret, atau / sebagai tanda pembagian.
 5. Jawaban ringkas dan padat (maksimal sekitar 150 kata). Gunakan bullet atau emoji secukupnya agar tetap menyenangkan.
 6. Sesekali gunakan gaya petualangan RPG untuk memotivasi, tetapi tetap edukatif.
@@ -455,7 +442,7 @@ function localTutorFallback(history: AiChatMessage[], context?: AiChatPlayerCont
     {
       keywords: ['halo', 'hai', 'hello', 'hi', 'assalam', 'selamat'],
       reply: () =>
-        `Halo${name}! 👋 Aku Guru AI Eduquest, siap menemanimu berpetualang!\nTanyakan apa saja soal materi SMP: Matematika, IPA, IPS, Bahasa Indonesia, atau Bahasa Inggris. Kamu juga bisa minta tips belajar. Apa yang ingin kamu pelajari hari ini? 🌟`,
+        `Halo${name}! 👋 Aku Guru AI Eduquest, siap menemanimu berpetualang!\nTanyakan apa saja dari 10 mapel Eduquest, mulai Matematika sampai Informatika, Bahasa Jawa, Seni Musik, PJOK, dan Pendidikan Pancasila. Kamu juga bisa minta tips belajar. Apa yang ingin kamu pelajari hari ini? 🌟`,
     },
   ];
 
