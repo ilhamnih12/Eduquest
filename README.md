@@ -45,17 +45,19 @@ Didukung integrasi **Google Gemini AI Flash** lewat SDK resmi, Eduquest bisa mem
 ## ✨ Fitur Utama
 
 ### ⚔️ 1. Arena Pertempuran Turn-Based Edukatif
-- **5 Bidang Studi Utama**: Matematika, IPA (Sains), IPS (Sosial), Bahasa Indonesia, dan Bahasa Inggris.
-- **Dukungan 3 Tingkat Kelas**: SMP Kelas 7, Kelas 8, dan Kelas 9.
-- **Ragam Monster Unik**: Setiap mata pelajaran dijaga oleh monster bertema unik (seperti *Slime Rumus*, *Titan Hukum Newton*, *Baron Monopoli*, *Penyair Majas*, dan *Vocabulary Sovereign Drake*).
+- **10 Mata Pelajaran**: Matematika, IPA, IPS, Bahasa Indonesia, Bahasa Inggris, Bahasa Jawa, Informatika, Seni Musik, PJOK, dan Pendidikan Pancasila (PKN).
+- **Dukungan 3 Tingkat Kelas**: SMP Kelas 7, Kelas 8, dan Kelas 9, masing-masing dengan 5 subbab per mata pelajaran.
+- **Ragam Monster Unik**: Setiap mata pelajaran dan kelas memiliki beberapa monster bertema. Lima mapel tambahan memperoleh 45 monster baru.
 - **Mekanisme Combo Streak**: Menjawab benar berturut-turut meningkatkan multiplier serangan hingga +75% damage ekstra.
 - **Sesi Multi-Ronde**: Satu sesi berlangsung minimal 5 ronde. Jika monster pertama kalah terlalu cepat, gelombang monster lain muncul sebelum hadiah diberikan.
-- **Synthesized 8-Bit Audio**: Efek suara pertarungan dinamis (serangan, kritikal, pemulihan, kekalahan, kemenangan) menggunakan Web Audio API tanpa perlu aset mp3 eksternal sehingga 100% offline-ready.
+- **Popup Roast saat Kabur**: Musuh memberi ejekan ringan dan ramah pelajar ketika pemain mencoba meninggalkan arena.
+- **Audio Web Audio Offline**: Efek suara 8-bit dan tiga aransemen BGM tenang orisinal (*Embun Pagi*, *Langit Senja*, dan *Danau Tenang*) dibuat secara prosedural, diputar dalam urutan acak tanpa pengulangan langsung, serta dikendalikan oleh satu tombol audio tersimpan.
 
 ### 🧠 2. Integrasi Google Gemini AI & Bank Soal Lokal
-- **Generasi Soal Dinamis**: Memanggil Gemini API untuk memproduksi soal baru sesuai topik dan tingkat kesulitan (*easy, medium, hard/HOTS*).
-- **Graceful Fallback Mechanism**: Jika kuota API habis atau sedang offline, sistem otomatis beralih mulus ke Bank Soal SMP bawaan yang kaya tanpa interupsi bermain.
-- **AI Guru Pembimbing**: Menyajikan analisis performa, tips belajar taktis, serta kata-kata motivasi berdasarkan riwayat akurasi siswa.
+- **Generasi Soal Dinamis**: Memanggil Gemini API untuk memproduksi soal baru sesuai mapel, subbab, dan tingkat kesulitan (*easy, medium, hard/HOTS*) dengan bahasa yang hangat dan tidak kaku.
+- **Format Soal Terstruktur**: Konteks, data, pertanyaan, opsi, petunjuk, dan pembahasan mendukung paragraf serta baris baru agar mudah dipindai.
+- **Graceful Fallback Mechanism**: Jika kuota API habis atau sedang offline, sistem otomatis beralih ke 154 soal lokal. Sebanyak 75 soal tambahan mencakup setiap subbab dari lima mapel baru.
+- **AI Guru Pembimbing**: Mengenali seluruh 10 mapel serta menyajikan analisis performa, tips belajar praktis, dan motivasi berdasarkan riwayat akurasi siswa.
 
 ### 📈 3. Sistem Progresi & Karakter Mendalam
 - **Kurva Leveling Eksponensial**: EXP berbasis level dengan kenaikan status otomatis (*Max HP, Base Attack, Base Defense*).
@@ -71,12 +73,12 @@ Didukung integrasi **Google Gemini AI Flash** lewat SDK resmi, Eduquest bisa mem
   - *Gulungan Petunjuk AI (Mengeliminasi 2 opsi jawaban salah)*
   - *Batu Kebangkitan (Menghidupkan karakter dengan 50% HP saat tumbang)*
   - *Jimat Cendekiawan (+50% Bonus EXP)*
-  - *Senjata & Zirah (Penggaris Kayu, Pedang Pena Baja, Tongkat Kalkulus, Rompi Pramuka, Jas Laboratorium, Jubah Mahaguru)*.
+  - *Senjata & Armor (Penggaris Kayu, Pedang Pena Baja, Tongkat Kalkulus, Rompi Pramuka, Jas Laboratorium, Jubah Mahaguru)*.
 - **Fitur UKS (Unit Kesehatan Sekolah)**: Pemulihan HP karakter dengan biaya murah.
 
 ### 🏆 5. Rapor Evaluasi & Prestasi (Achievements)
 - **Visualisasi Statistik Belajar**: Akurasi per mata pelajaran, total pertempuran, rasio kemenangan, dan rekor streak.
-- **13 Prestasi Berhadiah**: Misi capaian pertempuran, akademik, kekayaan, dan level dengan reward emas dan EXP melimpah.
+- **18 Prestasi Berhadiah**: Misi capaian pertempuran, penguasaan seluruh 10 mapel, kekayaan, dan level dengan reward emas dan EXP.
 
 ### 🌐 6. Arsitektur Offline-First & Cloud Sync
 - **IndexedDB via Dexie.js**: Seluruh progres tersimpan otomatis di browser lokal.
@@ -103,40 +105,30 @@ Didukung integrasi **Google Gemini AI Flash** lewat SDK resmi, Eduquest bisa mem
 | **Penyimpanan Cloud** | Upstash Redis (`@upstash/redis`) | Penyimpanan sesi dan sinkronisasi server |
 | **Kecerdasan Buatan** | Google Gemini API (Flash terbaru + fallback stabil) | Generasi soal SMP per subbab, evaluasi belajar, & AI Bubble Guru AI |
 | **Otentikasi** | NextAuth.js v4 / Auth.js | Wajib Daftar/Login (Kredensial & Google OAuth) + Middleware Proteksi |
-| **Efek Audio** | Web Audio API Synthesizer | Efek suara chiptune 8-bit tanpa dependensi file eksternal |
-| **Testing** | Vitest 2.x | Pengujian unit kalkulator stat, damage, & drop rate |
+| **Audio** | Web Audio API Synthesizer | Efek suara chiptune dan 3 variasi BGM tenang tanpa aset audio eksternal |
+| **Testing** | Vitest 2.x | 23 pengujian untuk logika game, cakupan 10 mapel, migrasi data, format soal, roast, dan urutan BGM |
 | **Deployment** | Vercel Platform | Konfigurasi otomatis zero-config deployment |
 
 ---
 
 ## 📚 Mata Pelajaran & Kurikulum
 
-Eduquest RPG mencakup 5 mata pelajaran inti kurikulum SMP. Di Arena, setiap kombinasi mapel dan kelas memiliki **5 subbab** yang bisa dipilih atau diacak. Soal AI mengikuti subbab tersebut, sedangkan bank lokal menyediakan fallback saat koneksi atau API sedang tidak tersedia.
+Eduquest RPG mencakup **10 mata pelajaran SMP**. Setiap kombinasi mapel dan kelas memiliki **5 subbab** yang dapat dipilih atau diacak—total 150 kombinasi subbab. Soal Gemini dan bank lokal memakai sumber kurikulum yang sama. Pembagian per kelas merupakan pengelompokan praktis aplikasi berdasarkan capaian Fase D, bukan ATP wajib sekolah.
 
-1. **Matematika**
-   - *Kelas 7*: Bilangan Bulat, Pecahan, Aljabar Sederhana, Himpunan, Perbandingan.
-   - *Kelas 8*: Teorema Pythagoras, Pola Bilangan, Sistem Persamaan Linier Dua Variabel (SPLDV), Lingkaran.
-   - *Kelas 9*: Perpangkatan & Bentuk Akar, Persamaan Kuadrat, Transformasi Geometri, Peluang & Statistika.
+| Mata Pelajaran | Kelas 7 | Kelas 8 | Kelas 9 |
+|----------------|---------|---------|---------|
+| **Matematika** | Bilangan & operasi hitung; aljabar & persamaan; himpunan; perbandingan & skala; geometri & pengukuran | Pola & barisan; Pythagoras; SPLDV; lingkaran; statistika | Perpangkatan & akar; persamaan kuadrat; transformasi; kesebangunan & kekongruenan; peluang & statistika |
+| **IPA** | Klasifikasi makhluk hidup; zat & perubahannya; pengukuran; suhu & kalor; ekosistem & keanekaragaman | Gerak & Newton; tekanan; sistem organ manusia; usaha & pesawat sederhana; jaringan tumbuhan | Listrik; kemagnetan; pewarisan sifat; bioteknologi; kimia & lingkungan |
+| **IPS** | Letak geografis Indonesia; peta & skala; interaksi sosial; kebutuhan & kelangkaan; pranata sosial & lingkungan | Kerajaan Nusantara; kedatangan bangsa Barat; ASEAN; mobilitas sosial; kegiatan ekonomi | Perubahan sosial budaya; perdagangan internasional; kemerdekaan Indonesia; kerja sama internasional; kependudukan & pembangunan |
+| **Bahasa Indonesia** | Deskripsi; fantasi; prosedur; laporan observasi; ejaan & tanda baca | Berita; iklan/slogan/poster; eksposisi; cerpen & puisi; persuasi | Laporan percobaan; pidato persuasif; diskusi; resensi & kritik sastra; kalimat efektif |
+| **Bahasa Inggris** | Greetings & introduction; simple present; pronouns & possessives; descriptive text; procedure text | Simple past; recount; comparison; modal auxiliaries; invitation & announcement | Narrative & folklore; passive voice; report text; conjunctions & purpose; opinion & persuasion |
+| **Bahasa Jawa** | Unggah-ungguh; crita rakyat; aksara legena & sandhangan; deskripsi; macapat Pangkur | Pacelathon; aksara & pasangan; geguritan; pawarta; wayang | Sesorah; aksara murda/swara/rekan; ngripta macapat; pranatacara; budaya lokal Jawa |
+| **Informatika** | Berpikir komputasional; sistem komputer; representasi data; internet aman & etis; dampak sosial | Algoritma & flowchart; pemrograman blok; analisis data; jaringan & internet; kolaborasi digital | Struktur data; pemrograman teks; visualisasi data; keamanan data; proyek lintas bidang |
+| **Seni Musik** | Unsur musik; notasi dasar; ritme; teknik vokal; musik Nusantara | Tangga nada & harmoni; ansambel; bentuk lagu; aransemen; apresiasi | Komposisi; teknologi musik; produksi pertunjukan; kritik musik; proyek musik Nusantara |
+| **PJOK** | Gerak permainan bola; atletik; senam lantai; gerak berirama; hidup bersih & sehat | Permainan beregu; aktivitas air; kebugaran; bela diri; gizi seimbang | Taktik olahraga; program kebugaran; pencegahan cedera & P3K; kesehatan remaja; proyek gaya hidup aktif |
+| **Pendidikan Pancasila (PKN)** | Nilai Pancasila; norma & UUD 1945; Bhinneka Tunggal Ika; wilayah & keutuhan NKRI; hak & kewajiban | Kedudukan Pancasila; konstitusi & peraturan; keberagaman; demokrasi & musyawarah; persatuan | Pancasila di era digital; partisipasi warga; HAM; bela negara & NKRI; proyek gotong royong |
 
-2. **Ilmu Pengetahuan Alam (IPA)**
-   - *Kelas 7*: Organisasi Kehidupan & Sel, Besaran & Pengukuran, Suhu & Kalor, Klasifikasi Makhluk Hidup.
-   - *Kelas 8*: Gerak Benda & Hukum Newton, Sistem Pencernaan, Usaha & Pesawat Sederhana, Struktur Jaringan Tumbuhan.
-   - *Kelas 9*: Listrik Statis & Dinamis, Pewarisan Sifat (Genetika), Kemagnetan, Bioteknologi Ramah Lingkungan.
-
-3. **Ilmu Pengetahuan Sosial (IPS)**
-   - *Kelas 7*: Letak Geografis & Geologis Indonesia, Peta & Skala, Interaksi Sosial, Kebutuhan Manusia & Kelangkaan.
-   - *Kelas 8*: Kerajaan Hindu-Buddha & Islam Nusantara, Kedatangan Bangsa Barat, Organisasi ASEAN, Mobilitas Sosial.
-   - *Kelas 9*: Perubahan Sosial Budaya, Perdagangan Internasional & Pasar Bebas, Peristiwa Kemerdekaan RI, Kerja Sama Internasional.
-
-4. **Bahasa Indonesia**
-   - *Kelas 7*: Teks Deskripsi, Cerita Fantasi, Teks Prosedur, Ejaan Yang Disempurnakan (EYD/PUEBI).
-   - *Kelas 8*: Teks Berita, Iklan & Slogan, Teks Eksposisi, Unsur Intrinsik Cerita Pendek & Puisi.
-   - *Kelas 9*: Teks Laporan Percobaan, Pidato Persuasif, Teks Diskusi, Resensi Buku & Kritik Sastra.
-
-5. **Bahasa Inggris**
-   - *Kelas 7*: Greetings & Introduction, Simple Present Tense, Pronouns, Descriptive Text.
-   - *Kelas 8*: Simple Past Tense, Recount Text, Degrees of Comparison, Modal Auxiliaries.
-   - *Kelas 9*: Narrative Folklore, Passive Voice, Conjunctions (*in order to atau so that*), Report Text.
+> Sumber topik berada di `lib/game/curriculum.ts`. Bank lokal di `lib/game/question-bank.ts` memuat 154 soal dan mencakup semua subbab lima mapel tambahan.
 
 ---
 
@@ -180,7 +172,7 @@ Eduquest/
 │   │   ├── battle/
 │   │   │   └── page.tsx           # Arena Pertarungan Turn-Based
 │   │   ├── inventory/
-│   │   │   └── page.tsx        # Tas Penyimpanan & Pasang Zirah
+│   │   │   └── page.tsx        # Tas Penyimpanan & Pasang Armor
 │   │   ├── shop/
 │   │   │   └── page.tsx             # Toko Pembelian & Penjualan Item
 │   │   └── profile/
@@ -193,9 +185,11 @@ Eduquest/
 │   │   │       └── route.ts       # Endpoint Pendaftaran Akun
 │   │   ├── ai/
 │   │   │   ├── generate-question/
-│   │   │   │   └── route.ts       # Endpoint Gemini AI Soal SMP
-│   │   │   └── study-tips/
-│   │   │       └── route.ts       # Endpoint Gemini AI Guru Tips
+│   │   │   │   └── route.ts       # Endpoint Gemini/Fallback Soal SMP
+│   │   │   ├── study-tips/
+│   │   │   │   └── route.ts       # Endpoint Gemini AI Guru Tips
+│   │   │   └── chat/
+│   │   │       └── route.ts       # Endpoint Percakapan Guru AI
 │   │   └── sync/
 │   │       └── route.ts           # Endpoint Sinkronisasi Cloud
 │   ├── globals.css                # CSS Variables Warna Sesuai Spesifikasi
@@ -214,7 +208,7 @@ Eduquest/
 │   │   ├── InventoryGrid.tsx      # Grid 20 Slot & Kelola Perlengkapan
 │   │   ├── ShopItemCard.tsx       # Tampilan Katalog Toko & Pembelian
 │   │   ├── StatsOverview.tsx      # Evaluasi Rapor & AI Guru
-│   │   └── AchievementBadge.tsx   # Daftar 13 Prestasi & Klaim Hadiah
+│   │   └── AchievementBadge.tsx   # Daftar 18 Prestasi & Klaim Hadiah
 │   ├── layout/
 │   │   ├── Navbar.tsx             # Navigasi Atas & Status Ringkas
 │   │   ├── Sidebar.tsx            # Panel Ringkasan Karakter Samping
@@ -233,13 +227,18 @@ Eduquest/
 │   │   ├── battle-logic.ts        # Kalkulasi Damage, Drop, & Rewards
 │   │   ├── level-calculator.ts    # Kurva EXP & Formula Atribut
 │   │   ├── item-database.ts       # Database 15+ Item RPG
-│   │   ├── enemies-database.ts    # Database Monster 5 Mapel
-│   │   ├── achievements-database.ts # Database 13 Prestasi
-│   │   ├── curriculum.ts           # Subbab per mapel dan kelas
-│   │   ├── question-format.ts      # Format matematika & acak opsi
-│   │   └── question-bank.ts        # Bank Soal Kurikulum SMP Bawaan
+│   │   ├── subjects.ts            # Metadata & validasi 10 mapel
+│   │   ├── enemies-database.ts    # Katalog Monster Seluruh Mapel
+│   │   ├── additional-enemies.ts  # 45 Monster untuk 5 Mapel Tambahan
+│   │   ├── achievements-database.ts # Database 18 Prestasi
+│   │   ├── curriculum.ts          # 5 Subbab per Mapel dan Kelas
+│   │   ├── question-format.ts     # Paragraf & Label Bagian Soal
+│   │   ├── question-bank.ts       # Gabungan 154 Soal Lokal
+│   │   └── additional-question-bank.ts # 75 Soal untuk Mapel Tambahan
+│   ├── audio/
+│   │   └── background-music.ts    # 3 BGM Prosedural & Urutan Acak
 │   ├── auth.ts                    # Konfigurasi NextAuth Options
-│   └── utils.ts                   # Helper Klas, Format, & Web Audio
+│   └── utils.ts                   # Helper Kelas, Format, & Efek Suara
 ├── store/
 │   ├── authStore.ts               # Zustand Store Sesi Pengguna
 │   ├── gameStore.ts               # Zustand Store State Game Lengkap
@@ -308,7 +307,7 @@ npm run dev
 Buka peramban web dan kunjungi **`http://localhost:3000`**. Game siap dimainkan!
 
 ### 5. Menjalankan Unit Test
-Untuk memverifikasi formula mekanik game, formula damage, exp curve, dan database item:
+Untuk memverifikasi mekanik game, cakupan 10 mapel/kelas/subbab, migrasi save, format soal, roast kabur, dan pengacakan BGM:
 ```bash
 npm test
 ```
@@ -369,15 +368,16 @@ Eduquest RPG dirancang dengan arsitektur *zero-config* yang dioptimalkan untuk p
              ▼                           │
    [ TAS & PERLENGKAPAN ]                ▼
    - Gunakan Ramuan HP             [ COMBAT ARENA ]
-   - Pasang Senjata/Zirah       - Soal Pilihan Ganda (AI)
+   - Pasang Senjata/Armor       - Soal AI/Fallback Terstruktur
    - Beli di Toko Emas          - Combo Streak Damage
+                                - Roast saat mencoba kabur
                                 - Raih EXP & Keping Emas
                                          │
                                          ▼
                                [ RAPOR & AI GURU ]
                                - Analisis Nilai & Akurasi
                                - Alokasi Poin Atribut
-                               - Buka 13 Prestasi
+                               - Buka 18 Prestasi
 ```
 
 1. **Memulai Petualangan**: Buka beranda, klik *"Mulai Bertempur Sekarang"*.
@@ -393,13 +393,16 @@ Eduquest RPG dirancang dengan arsitektur *zero-config* yang dioptimalkan untuk p
 ## 🔧 Troubleshooting & Solusi
 
 ### 1. Pertanyaan: Apakah game tetap bisa dimainkan jika tidak memiliki API Key Gemini?
-**Jawaban**: **Ya, 100% bisa!** Eduquest dilengkapi mekanisme *graceful degradation*. Jika API key tidak diisi atau kuota habis, game otomatis mengambil soal-soal berkualitas tinggi dari Bank Soal Kurikulum SMP bawaan di `lib/game/question-bank.ts`.
+**Jawaban**: **Ya, 100% bisa!** Eduquest dilengkapi mekanisme *graceful degradation*. Jika API key tidak diisi atau kuota habis, game otomatis mengambil soal dari bank lokal berisi 154 soal di `lib/game/question-bank.ts`.
 
 ### 2. Pertanyaan: Apakah game bisa dimainkan saat offline (tanpa koneksi internet)?
-**Jawaban**: **Ya!** Berkat integrasi Dexie.js (IndexedDB) dan Web Audio API, seluruh state karakter, pertempuran, efek suara, dan bank soal tersimpan di peramban lokal secara permanen.
+**Jawaban**: Setelah aplikasi termuat, state karakter, bank soal, efek suara, dan tiga BGM prosedural tidak memerlukan layanan AI maupun aset audio eksternal. Akses aplikasi, otentikasi, dan sinkronisasi cloud tetap bergantung pada server/jaringan sesuai konfigurasi deployment.
 
 ### 3. Pertanyaan: Bagaimana cara mereset progres karakter jika ingin mulai dari awal?
 **Jawaban**: Buka menu **Profil & Rapor** > pilih tab **Pengaturan & Cloud** > klik tombol merah **"Mulai Ulang Progres Game"**.
+
+### 4. Pertanyaan: Mengapa musik belum terdengar saat halaman pertama kali dibuka?
+**Jawaban**: Beberapa browser memblokir autoplay sampai ada interaksi pengguna. Klik halaman atau tombol audio di navbar; aplikasi akan mencoba memulai kembali BGM. Tombol tersebut mengaktifkan atau menonaktifkan musik dan efek suara sekaligus.
 
 ---
 

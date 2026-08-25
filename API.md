@@ -10,8 +10,9 @@ Dokumentasi ini menjelaskan secara komprehensif seluruh endpoint REST API yang t
 |---|---|---|---|
 | `POST` | `/api/auth/register` | Mendaftarkan akun siswa baru dengan starter kit | Publik |
 | `POST` | `/api/auth/[...nextauth]` | Endpoint otentikasi NextAuth (Login & Sesi) | Publik |
-| `POST` | `/api/ai/generate-question` | Menghasilkan soal SMP via Gemini AI / Fallback | Publik / Internal |
+| `POST` | `/api/ai/generate-question` | Menghasilkan soal 10 mapel via Gemini AI / fallback lokal | Publik / Internal |
 | `POST` | `/api/ai/study-tips` | Menganalisis statistik belajar & rekomendasi AI | Publik / Internal |
+| `POST` | `/api/ai/chat` | Percakapan kontekstual dengan Guru AI | Wajib login |
 | `POST` | `/api/sync` | Sinkronisasi data game lokal ke Upstash Redis | Publik / User |
 
 ---
@@ -54,7 +55,7 @@ Mendaftarkan akun pahlawan baru ke dalam sistem dan memberikan paket perlengkapa
 ---
 
 ## 2. Generasi Soal Kurikulum SMP (Gemini AI)
-Menghasilkan 1 butir soal pilihan ganda baru sesuai mata pelajaran, tingkat kelas, dan tingkat kesulitan yang diminta dengan dukungan Google Gemini AI dan fallback otomatis ke Bank Soal lokal.
+Menghasilkan 1 butir soal pilihan ganda baru sesuai salah satu dari 10 mata pelajaran, tingkat kelas, subbab, dan tingkat kesulitan yang diminta. Gemini memakai bahasa Indonesia yang komunikatif; bila layanan AI tidak tersedia, endpoint otomatis memilih dari 154 soal lokal.
 
 - **URL**: `/api/ai/generate-question`
 - **Method**: `POST`
@@ -75,7 +76,7 @@ Menghasilkan 1 butir soal pilihan ganda baru sesuai mata pelajaran, tingkat kela
 
 | Parameter | Tipe Data | Deskripsi |
 |---|---|---|
-| `subject` | `string` (Wajib) | `'matematika'`, `'ipa'`, `'ips'`, `'indonesia'`, `'inggris'` |
+| `subject` | `string` (Wajib) | `'matematika'`, `'ipa'`, `'ips'`, `'indonesia'`, `'inggris'`, `'jawa'`, `'informatika'`, `'musik'`, `'pjok'`, atau `'pkn'` |
 | `grade` | `number` (Opsional) | `7`, `8`, `9` (Default: `7`) |
 | `difficulty` | `string` (Opsional) | `'easy'`, `'medium'`, `'hard'` (Default: `'medium'`) |
 | `topic` | `string` (Opsional) | Topik materi spesifik |
@@ -91,7 +92,7 @@ Menghasilkan 1 butir soal pilihan ganda baru sesuai mata pelajaran, tingkat kela
   "grade": 8,
   "topic": "Teorema Pythagoras",
   "difficulty": "medium",
-  "question": "Sebuah segitiga siku-siku memiliki panjang alas 6 cm dan tinggi 8 cm. Berapakah panjang sisi miring (hipotenusa) segitiga tersebut?",
+  "question": "Konteks:\nSebuah segitiga siku-siku memiliki alas 6 cm dan tinggi 8 cm.\n\nPertanyaan:\nBerapakah panjang sisi miringnya?",
   "options": [
     "9 cm",
     "10 cm",
@@ -105,10 +106,12 @@ Menghasilkan 1 butir soal pilihan ganda baru sesuai mata pelajaran, tingkat kela
 }
 ```
 
+Kolom `question`, `options`, `hint`, dan `explanation` dapat memuat karakter baris baru (`\n`). Klien sebaiknya mempertahankan baris baru agar label bagian dan paragraf tetap mudah dibaca. Nilai `source` adalah `gemini` atau `local_bank`.
+
 ---
 
 ## 3. Konsultasi AI Guru Pembimbing (Study Tips)
-Menganalisis performa akademik siswa pada mata pelajaran tertentu dan menghasilkan saran taktis peningkatan pemahaman materi.
+Menganalisis performa akademik siswa pada salah satu dari 10 mata pelajaran dan menghasilkan saran belajar yang praktis dengan gaya bahasa komunikatif. Nilai `subject` memakai ID yang sama dengan endpoint generasi soal.
 
 - **URL**: `/api/ai/study-tips`
 - **Method**: `POST`
@@ -145,7 +148,42 @@ Menganalisis performa akademik siswa pada mata pelajaran tertentu dan menghasilk
 
 ---
 
-## 4. Sinkronisasi Data Game Cloud
+## 4. Percakapan Guru AI
+Mengirim riwayat percakapan dan konteks progres pemain kepada Guru AI. Endpoint membatasi riwayat ke 24 pesan terakhir dan isi setiap pesan ke 1.000 karakter. Balasan memakai bahasa yang akrab dan memahami seluruh 10 mapel.
+
+- **URL**: `/api/ai/chat`
+- **Method**: `POST`
+- **Otorisasi**: Sesi NextAuth aktif
+- **Headers**: `Content-Type: application/json`
+
+### Request Body
+```json
+{
+  "messages": [
+    { "role": "user", "content": "Bantu jelaskan aksara Jawa pasangan dengan cara sederhana." }
+  ],
+  "context": {
+    "username": "KesatriaBudi",
+    "level": 4,
+    "weakestSubject": "Bahasa Jawa",
+    "accuracy": 65
+  }
+}
+```
+
+### Response Berhasil (200 OK)
+```json
+{
+  "reply": "Tentu! Pasangan dipakai untuk mematikan vokal aksara sebelumnya...",
+  "source": "gemini"
+}
+```
+
+Nilai `source` adalah `gemini` atau `local`. Tanpa sesi aktif, endpoint mengembalikan status `401`.
+
+---
+
+## 5. Sinkronisasi Data Game Cloud
 Menyimpan dan menyelaraskan state karakter, tas inventori, dan rekor prestasi antara browser lokal (IndexedDB) dan server Upstash Redis. Adapter masih menerima nama env KV lama dari integrasi Vercel.
 
 - **URL**: `/api/sync`
@@ -195,13 +233,20 @@ Menyimpan dan menyelaraskan state karakter, tas inventori, dan rekor prestasi an
       "ipa": { "correct": 6, "total": 8, "streak": 0, "bestStreak": 3 },
       "ips": { "correct": 5, "total": 6, "streak": 1, "bestStreak": 3 },
       "indonesia": { "correct": 5, "total": 5, "streak": 5, "bestStreak": 5 },
-      "inggris": { "correct": 4, "total": 5, "streak": 0, "bestStreak": 2 }
+      "inggris": { "correct": 4, "total": 5, "streak": 0, "bestStreak": 2 },
+      "jawa": { "correct": 3, "total": 4, "streak": 1, "bestStreak": 2 },
+      "informatika": { "correct": 4, "total": 5, "streak": 2, "bestStreak": 3 },
+      "musik": { "correct": 2, "total": 3, "streak": 0, "bestStreak": 2 },
+      "pjok": { "correct": 3, "total": 3, "streak": 3, "bestStreak": 3 },
+      "pkn": { "correct": 4, "total": 4, "streak": 2, "bestStreak": 4 }
     }
   },
   "achievements": [],
   "lastSaved": "2026-08-24T12:00:00.000Z"
 }
 ```
+
+Server menormalisasi statistik dan katalog prestasi saat sinkronisasi. Save lama yang baru memiliki lima mapel tetap dapat dimuat; lima baris mapel tambahan serta prestasi terbaru diisi tanpa menghapus progres atau status unlock yang sudah tersimpan.
 
 ### Response Berhasil (200 OK)
 ```json
