@@ -8,6 +8,7 @@ import { getSubjectMeta, formatGold } from '@/lib/utils';
 import { calculateEffectiveStats } from '@/lib/game/level-calculator';
 import { getItemById } from '@/lib/game/item-database';
 import { formatMathText } from '@/lib/game/question-format';
+import { SUBJECT_IDS } from '@/lib/game/subjects';
 import { ProgressBar } from './ProgressBar';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -46,7 +47,7 @@ export function StatsOverview() {
   const overallAccuracy =
     stats.questionsAnswered > 0 ? Math.round((stats.correctAnswers / stats.questionsAnswered) * 100) : 0;
 
-  const subjectList: Subject[] = ['matematika', 'ipa', 'ips', 'indonesia', 'inggris'];
+  const subjectList: Subject[] = [...SUBJECT_IDS];
 
   const fetchStudyTips = async (subj: Subject) => {
     setIsLoadingAiTips(true);
@@ -101,7 +102,7 @@ export function StatsOverview() {
               Rapor Evaluasi & Statistik Cendekia
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Analisis performa 5 mata pelajaran, alokasi atribut, dan rekomendasi AI Guru.
+              Analisis performa semua mata pelajaran, alokasi atribut, dan rekomendasi AI Guru.
             </p>
           </div>
         </div>
@@ -235,7 +236,7 @@ export function StatsOverview() {
               Total Kekuatan Karakter (Effective Stats)
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Hasil gabungan Level + Atribut + Senjata + Baju Zirah.
+              Hasil gabungan Level + Atribut + Senjata + Armor.
             </p>
           </div>
 
@@ -248,7 +249,7 @@ export function StatsOverview() {
               <p className="text-xl font-black text-rose-600 dark:text-rose-400">
                 {effective.maxHp} HP
               </p>
-              <p className="text-[10px] text-slate-400">Dasar: 100 + VIT & Zirah</p>
+              <p className="text-[10px] text-slate-400">Dasar: 100 + VIT & Armor</p>
             </div>
 
             <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-1">
@@ -292,7 +293,7 @@ export function StatsOverview() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-edu-borderLight dark:border-edu-borderDark pb-3">
           <div>
             <h3 className="text-sm font-black uppercase tracking-wider text-edu-textLight dark:text-edu-textDark">
-              Performa 5 Mata Pelajaran Kurikulum SMP
+              Performa {subjectList.length} Mata Pelajaran SMP
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Pantau tingkat akurasi dan penguasaan setiap bidang studi.

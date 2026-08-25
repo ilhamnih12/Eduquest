@@ -1,5 +1,6 @@
 import { Question, Subject, GradeLevel } from '@/types/game';
 import { formatQuestion } from '@/lib/game/question-format';
+import { ADDITIONAL_QUESTION_BANK } from '@/lib/game/additional-question-bank';
 
 export const QUESTION_BANK: Question[] = [
   // ==========================================
@@ -1065,6 +1066,7 @@ export const QUESTION_BANK: Question[] = [
     source: 'local_bank',
   },
 
+  ...ADDITIONAL_QUESTION_BANK,
 ];
 
 export function getLocalQuestions(subject: Subject, grade?: GradeLevel): Question[] {

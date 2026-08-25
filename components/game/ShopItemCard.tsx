@@ -65,7 +65,7 @@ export function ShopItemCard() {
   const tabs = [
     { id: 'all', label: 'Semua Item', icon: '📦' },
     { id: 'consumable', label: 'Ramuan HP', icon: '🧪' },
-    { id: 'equipment', label: 'Senjata & Zirah', icon: '🗡️' },
+    { id: 'equipment', label: 'Senjata & Armor', icon: '🗡️' },
     { id: 'booster', label: 'Jimat & Petunjuk', icon: '📜' },
   ];
 

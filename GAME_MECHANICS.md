@@ -11,15 +11,16 @@ Dokumen ini menjelaskan secara terperinci seluruh aturan permainan, sistem perhi
         │                                              │
         ▼                                              │
 [ PILIH MATA PELAJARAN ]                               │
-   - Matematika / IPA / IPS / B. Indo / B. Inggris     │
+   - Matematika / IPA / IPS / B. Indonesia / B. Inggris│
+   - B. Jawa / Informatika / Musik / PJOK / PKN        │
         │                                              │
         ▼                                              │
 [ MASUK ARENA PERTEMPURAN ]                            │
    - Monster muncul sesuai level & kelas               │
-   - AI Gemini men-generate soal pilihan ganda         │
+   - Soal Gemini / fallback lokal sesuai subbab        │
         │                                              │
         ▼                                              │
-[ JAWA B SOAL PILIHAN GANDA (A, B, C, D) ]             │
+[ JAWAB SOAL PILIHAN GANDA (A, B, C, D) ]             │
         │                                              │
         ├─────────────────────────────┐                │
         ▼                             ▼                │
@@ -47,12 +48,16 @@ Dokumen ini menjelaskan secara terperinci seluruh aturan permainan, sistem perhi
                        │                             │
                        ▼                             │
             [ BELANJA & UPGRADE ]                    │
-            - Pasang Senjata & Zirah                 │
+            - Pasang Senjata & Armor                 │
             - Beli Ramuan di Toko                    │
             - Alokasi Poin Atribut (STR, VIT, INT)   │
                        │                             │
                        └─────────────────────────────┘
 ```
+
+Arena mendukung 10 mapel: Matematika, IPA, IPS, Bahasa Indonesia, Bahasa Inggris, Bahasa Jawa, Informatika, Seni Musik, PJOK, dan Pendidikan Pancasila (PKN). Setiap mapel memiliki 5 subbab untuk masing-masing kelas 7, 8, dan 9. Database musuh menyediakan minimal 3 musuh untuk setiap kombinasi mapel/kelas.
+
+Bank fallback memuat **154 soal lokal**. Pertanyaan, opsi, petunjuk, dan pembahasan mempertahankan paragraf serta baris baru; teks juga dapat memakai label seperti `Konteks:`, `Data:`, dan `Pertanyaan:`. Soal Gemini diarahkan mengikuti struktur yang sama dengan gaya percakapan yang ramah pelajar.
 
 ---
 
@@ -61,8 +66,9 @@ Dokumen ini menjelaskan secara terperinci seluruh aturan permainan, sistem perhi
 ### A. Tindakan Ronde (Turn Actions)
 Setiap ronde, pemain disajikan sebuah pertanyaan pilihan ganda 4 opsi. Satu sesi arena berlangsung **minimal 5 ronde**; kalau satu monster kalah sebelum itu, gelombang monster berikutnya langsung muncul. Hadiah baru diberikan setelah sesi selesai.
 1. **Menjawab Benar**: Pemain melancarkan serangan (*attack action*). Nilai kerusakan dihitung berdasarkan Atribut Karakter, Senjata, Level, Multiplier Combo Streak, dan Peluang Serangan Kritis (*Critical Hit*).
-2. **Menjawab Salah**: Monster melancarkan serangan balasan (*counter-attack*). Nilai kerusakan dikurangi oleh Pertahanan (*Defense*) dan Zirah pemain.
-3. **Penggunaan Item Bantuan**: Pemain dapat meminum ramuan atau memakai jimat pendukung sebelum menjawab soal:
+2. **Menjawab Salah**: Monster melancarkan serangan balasan (*counter-attack*). Nilai kerusakan dikurangi oleh Pertahanan (*Defense*) dan armor pemain.
+3. **Kabur dari Arena**: Tombol kabur menampilkan popup berisi roast ringan dari musuh. Pemain kemudian memilih untuk tetap bertarung atau mengonfirmasi keluar tanpa hadiah dari sesi tersebut.
+4. **Penggunaan Item Bantuan**: Pemain dapat meminum ramuan atau memakai jimat pendukung sebelum menjawab soal:
    - *Ramuan Pemulih HP*: Memulihkan HP secara instan.
    - *Serbuk Fokus Belajar*: Memberikan buff +35% Serangan selama 3 ronde.
    - *Perisai Konsentrasi*: Memberikan buff +45% Pertahanan selama 3 ronde.
@@ -134,15 +140,15 @@ Setiap naik level, karakter memperoleh **+3 Poin Atribut Bebas** yang dapat dial
 | `weapon_wooden_ruler` | Penggaris Kayu Pemula | Senjata | Biasa | +12 ATK, +2% Crit | 90 Emas | 45 Emas |
 | `weapon_pen_blade` | Pedang Pena Baja | Senjata | Langka | +28 ATK, +6% Crit | 320 Emas | 160 Emas |
 | `weapon_calculus_staff`| Tongkat Kalkulus Ajaib | Senjata | Legendaris | +55 ATK, +15% Crit | 750 Emas | 375 Emas |
-| `armor_school_vest` | Rompi Seragam Pramuka | Zirah | Biasa | +8 DEF, +25 Max HP | 80 Emas | 40 Emas |
-| `armor_lab_coat` | Jas Baja Laboratorium | Zirah | Langka | +22 DEF, +65 Max HP | 290 Emas | 145 Emas |
-| `armor_archmage_robe` | Jubah Mahaguru Nusantara| Zirah | Legendaris | +45 DEF, +140 Max HP| 800 Emas | 400 Emas |
+| `armor_school_vest` | Rompi Seragam Pramuka | Armor | Biasa | +8 DEF, +25 Max HP | 80 Emas | 40 Emas |
+| `armor_lab_coat` | Jas Baja Laboratorium | Armor | Langka | +22 DEF, +65 Max HP | 290 Emas | 145 Emas |
+| `armor_archmage_robe` | Jubah Mahaguru Nusantara| Armor | Legendaris | +45 DEF, +140 Max HP| 800 Emas | 400 Emas |
 
 ---
 
 ## 🏆 5. Daftar Prestasi & Capaian (Achievements)
 
-Sistem memantau 13 capaian prestasi secara otomatis:
+Sistem memantau 18 capaian prestasi secara otomatis. Save lama dinormalisasi ke katalog terbaru tanpa menghapus progres dan status unlock yang sudah ada:
 1. **Langkah Pertama**: Menangkan 1 pertempuran (*Reward: 50 Emas, 50 EXP*).
 2. **Petarung Gigih**: Menangkan 5 pertempuran (*Reward: 100 Emas, 120 EXP*).
 3. **Kesatria Ulung**: Menangkan 20 pertempuran (*Reward: 300 Emas, 400 EXP*).
@@ -156,6 +162,23 @@ Sistem memantau 13 capaian prestasi secara otomatis:
 11. **Sejarawan Nusantara**: Jawab 10 soal IPS benar (*Reward: 150 Emas, 200 EXP*).
 12. **Pujangga Bahasa**: Jawab 10 soal Bahasa Indonesia benar (*Reward: 150 Emas, 200 EXP*).
 13. **Bilingual Scholar**: Jawab 10 soal Bahasa Inggris benar (*Reward: 150 Emas, 200 EXP*).
+14. **Wiyata Basa Jawa**: Jawab 10 soal Bahasa Jawa benar (*Reward: 150 Emas, 200 EXP*).
+15. **Penakluk Bug**: Jawab 10 soal Informatika benar (*Reward: 150 Emas, 200 EXP*).
+16. **Maestro Muda**: Jawab 10 soal Seni Musik benar (*Reward: 150 Emas, 200 EXP*).
+17. **Juara Hidup Aktif**: Jawab 10 soal PJOK benar (*Reward: 150 Emas, 200 EXP*).
+18. **Pelajar Pancasila**: Jawab 10 soal Pendidikan Pancasila benar (*Reward: 150 Emas, 200 EXP*).
+
+---
+
+## 🎵 6. Sistem Audio
+
+Eduquest memakai Web Audio API dan tidak menyimpan file musik eksternal:
+
+- Efek suara chiptune mencakup serangan, kritikal, pemulihan, kekalahan, dan kemenangan.
+- BGM memiliki tiga aransemen tenang: **Embun Pagi**, **Langit Senja**, dan **Danau Tenang**.
+- Lagu diputar berulang dengan sistem *shuffle bag*: setiap siklus mengacak ketiga variasi dan mencegah variasi yang sama terulang langsung di batas siklus.
+- Tombol audio di navbar mengendalikan BGM dan efek suara sekaligus. Preferensinya disimpan di browser.
+- Startup mengikuti kebijakan autoplay browser. Jika audio awal diblokir, interaksi pengguna berikutnya mencoba mengaktifkannya kembali.
 
 ---
 

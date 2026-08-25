@@ -127,11 +127,13 @@ vercel env add GEMINI_API_KEY production
 Setelah deployment selesai, lakukan pemeriksaan berikut pada URL produksi:
 
 1. **Akses Beranda**: Pastikan tampilan beranda terbuka dengan baik dan tema gelap/terang dapat beralih mulus.
-2. **Mode Tamu**: Buka `/login`, klik *"Coba Langsung (Mode Tamu)"*, masukkan nama pahlawan, lalu mulai bermain.
-3. **Pertempuran Soal**: Buka `/battle`, pilih mata pelajaran Matematika Kelas 7, lalu jawab pertanyaan untuk memastikan kalkulasi serangan dan EXP berjalan lancar.
-4. **Efek Audio**: Pastikan efek suara Web Audio berbunyi saat memilih jawaban dan memenangkan ronde.
-5. **Tas & Toko**: Kunjungi `/shop`, beli *Ramuan Pemulih HP*, lalu periksa di `/inventory` apakah item tersimpan dalam 20 slot tas.
-6. **Lighthouse Audit**: Jalankan Google Chrome DevTools > Lighthouse, pastikan skor performa dan aksesibilitas berada di atas 90.
+2. **Otentikasi**: Daftarkan akun di `/register`, masuk melalui `/login`, lalu pastikan halaman game yang terlindungi dapat dibuka. Eduquest tidak menyediakan mode tamu.
+3. **Cakupan Arena**: Buka `/battle`; pastikan seluruh 10 mapel muncul. Pilih salah satu mapel tambahan, kelas 7–9, dan subbab, lalu jawab soal untuk memeriksa kalkulasi serangan serta EXP.
+4. **Format & Fallback Soal**: Pastikan paragraf/baris baru pada soal dan pembahasan tetap tampil. Uji tanpa `GEMINI_API_KEY` untuk memastikan bank lokal tetap berjalan.
+5. **Kabur dari Arena**: Klik tombol kabur, pastikan roast musuh muncul, batalkan sekali, lalu konfirmasi keluar pada percobaan berikutnya.
+6. **Audio**: Aktifkan tombol audio di navbar; pastikan efek suara dan salah satu dari tiga BGM prosedural terdengar. Muat ulang halaman untuk memeriksa preferensi tersimpan.
+7. **Tas & Toko**: Kunjungi `/shop`, beli *Ramuan Pemulih HP*, lalu periksa di `/inventory` apakah item tersimpan dalam 20 slot tas dan istilah **armor** digunakan.
+8. **Lighthouse Audit**: Jalankan Google Chrome DevTools > Lighthouse, pastikan skor performa dan aksesibilitas berada di atas 90.
 
 ---
 

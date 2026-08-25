@@ -15,6 +15,10 @@ import {
   FlaskConical,
   Globe2,
   Languages,
+  Landmark,
+  Code2,
+  Music2,
+  Activity,
   Zap,
   CheckCircle2,
 } from 'lucide-react';
@@ -22,6 +26,20 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useGameStore } from '@/store/gameStore';
 import { useAuthStore } from '@/store/authStore';
+import { SUBJECTS } from '@/lib/game/subjects';
+
+const SUBJECT_ICONS = {
+  calculator: Calculator,
+  flask: FlaskConical,
+  globe: Globe2,
+  book: BookOpen,
+  languages: Languages,
+  landmark: Landmark,
+  code: Code2,
+  music: Music2,
+  activity: Activity,
+  shield: ShieldCheck,
+};
 
 export default function HomePage() {
   const { isInitialized, initGame } = useGameStore();
@@ -54,7 +72,7 @@ export default function HomePage() {
     },
     {
       title: 'Tas, Senjata, & Toko Perlengkapan',
-      desc: 'Kumpulkan keping emas untuk membeli Ramuan HP, Tongkat Kalkulus, Baju Zirah, dan Gulungan Petunjuk.',
+      desc: 'Kumpulkan keping emas untuk membeli Ramuan HP, Tongkat Kalkulus, Armor, dan Gulungan Petunjuk.',
       icon: Trophy,
       color: 'text-purple-500 bg-purple-500/10 border-purple-500/20',
     },
@@ -65,20 +83,19 @@ export default function HomePage() {
       color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
     },
     {
-      title: '5 Mata Pelajaran Kurikulum Merdeka',
-      desc: 'Mencakup Matematika, IPA, IPS, Bahasa Indonesia, dan Bahasa Inggris untuk Kelas 7, 8, dan 9 SMP.',
+      title: `${SUBJECTS.length} Mata Pelajaran SMP`,
+      desc: 'Dari Matematika dan bahasa sampai Informatika, Seni Musik, PJOK, serta Pendidikan Pancasila untuk Kelas 7–9.',
       icon: BookOpen,
       color: 'text-cyan-500 bg-cyan-500/10 border-cyan-500/20',
     },
   ];
 
-  const subjects = [
-    { name: 'Matematika', icon: Calculator, desc: 'Aljabar, Geometri, Pythagoras & SPLDV', color: 'from-rose-500/20 to-red-600/10' },
-    { name: 'IPA (Sains)', icon: FlaskConical, desc: 'Biologi Sel, Hukum Newton, Kalor & Listrik', color: 'from-emerald-500/20 to-teal-600/10' },
-    { name: 'IPS (Sosial)', icon: Globe2, desc: 'Geografi, Sejarah Nusantara, ASEAN & Ekonomi', color: 'from-amber-500/20 to-yellow-600/10' },
-    { name: 'Bahasa Indonesia', icon: BookOpen, desc: 'Teks Deskripsi, Majas, Cerpen & EYD', color: 'from-blue-500/20 to-indigo-600/10' },
-    { name: 'Bahasa Inggris', icon: Languages, desc: 'Grammar, Tenses, Reading & Vocabulary', color: 'from-purple-500/20 to-violet-600/10' },
-  ];
+  const subjects = SUBJECTS.map((subject) => ({
+    id: subject.id,
+    name: subject.name,
+    icon: SUBJECT_ICONS[subject.icon],
+    desc: subject.description,
+  }));
 
   return (
     <div className="space-y-16 py-4 animate-in fade-in duration-300">
@@ -133,12 +150,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 5 Subjects Carousel / Grid */}
+      {/* Subject arena grid */}
       <section className="space-y-6">
         <div className="text-center space-y-2 max-w-xl mx-auto">
           <Badge variant="gold">KURIKULUM SMP KELAS 7 - 9</Badge>
           <h2 className="text-2xl sm:text-3xl font-black text-edu-textLight dark:text-edu-textDark">
-            5 Arena Mata Pelajaran Utama
+            {subjects.length} Arena Mata Pelajaran
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             Setiap mata pelajaran memiliki variasi monster unik dengan karakteristik dan kelemahan masing-masing.
@@ -146,11 +163,11 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {subjects.map((s, idx) => {
+          {subjects.map((s) => {
             const Icon = s.icon;
             return (
               <div
-                key={idx}
+                key={s.id}
                 className="p-5 rounded-3xl border border-edu-borderLight dark:border-edu-borderDark bg-edu-cardLight dark:bg-edu-cardDark shadow-sm hover:scale-[1.02] transition-all"
               >
                 <div className="flex items-center gap-3 mb-3">

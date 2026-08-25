@@ -24,6 +24,11 @@ import { useGameStore } from '@/store/gameStore';
 import { useAuthStore } from '@/store/authStore';
 import { ThemeToggle } from './ThemeToggle';
 import { soundManager, formatGold } from '@/lib/utils';
+import {
+  backgroundMusicManager,
+  getAudioPreference,
+  saveAudioPreference,
+} from '@/lib/audio/background-music';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 
@@ -37,10 +42,31 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [isSyncing, setIsSyncing] = React.useState(false);
 
+  React.useEffect(() => {
+    const enabled = getAudioPreference();
+    setSoundEnabled(enabled);
+    soundManager.setEnabled(enabled);
+    backgroundMusicManager.setEnabled(enabled);
+
+    // Browsers only allow audio after a user gesture. Keep these lightweight
+    // listeners active so a rejected autoplay attempt can be retried later.
+    const unlockAudio = () => {
+      if (backgroundMusicManager.isEnabled()) void backgroundMusicManager.start();
+    };
+    window.addEventListener('pointerdown', unlockAudio);
+    window.addEventListener('keydown', unlockAudio);
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
+  }, []);
+
   const toggleSound = () => {
     const next = !soundEnabled;
     setSoundEnabled(next);
+    saveAudioPreference(next);
     soundManager.setEnabled(next);
+    backgroundMusicManager.setEnabled(next);
     if (next) soundManager.playClick();
   };
 
@@ -61,7 +87,7 @@ export function Navbar() {
 
   const navLinks = [
     { href: '/battle', label: 'Pertempuran', icon: Swords },
-    { href: '/inventory', label: 'Tas & Zirah', icon: Backpack },
+    { href: '/inventory', label: 'Tas & Armor', icon: Backpack },
     { href: '/shop', label: 'Toko Perlengkapan', icon: Store },
     { href: '/profile', label: 'Rapor & Prestasi', icon: UserCheck },
   ];
@@ -168,8 +194,9 @@ export function Navbar() {
           {/* Sound Toggle */}
           <button
             onClick={toggleSound}
-            aria-label="Toggle Efek Suara"
-            title={soundEnabled ? 'Matikan Suara Audio' : 'Nyalakan Suara Audio'}
+            aria-label={soundEnabled ? 'Matikan musik dan efek suara' : 'Nyalakan musik dan efek suara'}
+            aria-pressed={soundEnabled}
+            title={soundEnabled ? 'Matikan Musik & Efek Suara' : 'Nyalakan Musik & Efek Suara'}
             className="flex h-10 w-10 items-center justify-center rounded-xl border border-edu-borderLight dark:border-edu-borderDark bg-white dark:bg-edu-cardDark text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-edu-borderDark transition-colors active:scale-95"
           >
             {soundEnabled ? (

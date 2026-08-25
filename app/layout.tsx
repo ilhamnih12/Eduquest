@@ -8,7 +8,7 @@ import { AiChatBubble } from '@/components/ai/AiChatBubble';
 export const metadata: Metadata = {
   title: 'Eduquest RPG - Game Edukasi SMP Indonesia',
   description:
-    'Game RPG edukatif turn-based untuk siswa SMP (Sekolah Menengah Pertama) Indonesia dengan integrasi Google Gemini AI, Kurikulum Merdeka, dan dukungan offline IndexedDB.',
+    'Game RPG edukatif turn-based untuk siswa SMP kelas 7–9 dengan 10 mata pelajaran, Kurikulum Merdeka Fase D, bantuan Google Gemini AI, dan dukungan offline.',
   authors: [
     { name: 'edinst', url: 'https://github.com/edinst' },
     { name: 'Arena AI', url: 'https://arena.ai' },
@@ -20,6 +20,11 @@ export const metadata: Metadata = {
     'soal matematika smp',
     'soal ipa smp',
     'soal ips smp',
+    'bahasa jawa smp',
+    'informatika smp',
+    'seni musik smp',
+    'pjok smp',
+    'pendidikan pancasila smp',
     'gemini ai',
     'edinst',
   ],

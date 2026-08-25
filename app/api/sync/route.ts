@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { saveServerGameState, loadServerGameState } from '@/lib/db/vercel-kv';
 import { GameState } from '@/types/game';
+import { normalizeStatistics } from '@/lib/game/subjects';
+import { normalizeAchievements } from '@/lib/game/achievements-database';
 
 export async function POST(request: Request) {
   try {
@@ -22,7 +24,12 @@ export async function POST(request: Request) {
       }
     }
 
-    finalState.lastSaved = new Date().toISOString();
+    finalState = {
+      ...finalState,
+      statistics: normalizeStatistics(finalState.statistics),
+      achievements: normalizeAchievements(finalState.achievements),
+      lastSaved: new Date().toISOString(),
+    };
     await saveServerGameState(clientState.userId, finalState);
 
     return NextResponse.json(

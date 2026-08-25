@@ -1,4 +1,5 @@
 import { Enemy, Subject, GradeLevel } from '@/types/game';
+import { ADDITIONAL_ENEMIES } from '@/lib/game/additional-enemies';
 
 const BASE_ENEMY_DATABASE: Enemy[] = [
   // === MATEMATIKA ===
@@ -737,7 +738,23 @@ const VARIANT_ENEMIES: Enemy[] = Object.entries(ENEMY_VARIANT_CONFIGS).flatMap((
   }));
 });
 
-export const ENEMY_DATABASE: Enemy[] = [...BASE_ENEMY_DATABASE, ...VARIANT_ENEMIES];
+export const ENEMY_DATABASE: Enemy[] = [
+  ...BASE_ENEMY_DATABASE,
+  ...VARIANT_ENEMIES,
+  ...ADDITIONAL_ENEMIES,
+];
+
+/** Pick a light, school-friendly roast for the escape confirmation dialog. */
+export function getEnemyEscapeRoast(enemy: Enemy): string {
+  const genericRoasts = [
+    `Baru lihat ${enemy.name} sudah cari pintu keluar? Soalnya belum sempat menggigit, lho!`,
+    `Katanya pahlawan level tinggi—kok langkah paling cepatnya justru menjauh dari ${enemy.name}?`,
+    `${enemy.name} mencatat: seranganmu belum datang, tetapi jurus kaburmu dapat nilai sempurna!`,
+    `Mau latihan dulu? Boleh. Tapi ${enemy.name} bakal tetap ingat siapa yang kabur hari ini!`,
+  ];
+  const choices = enemy.escapeRoasts?.length ? enemy.escapeRoasts : genericRoasts;
+  return choices[Math.floor(Math.random() * choices.length)];
+}
 
 export function getEnemiesBySubject(subject: Subject, grade?: GradeLevel): Enemy[] {
   return ENEMY_DATABASE.filter((enemy) => {

@@ -1,14 +1,10 @@
 import { NextResponse } from 'next/server';
 import { generateAiQuestion } from '@/lib/ai/gemini';
 import { Subject, GradeLevel } from '@/types/game';
+import { isSubject } from '@/lib/game/subjects';
 
-const SUBJECTS: Subject[] = ['matematika', 'ipa', 'ips', 'indonesia', 'inggris'];
 const GRADES: GradeLevel[] = [7, 8, 9];
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
-
-function isSubject(value: unknown): value is Subject {
-  return typeof value === 'string' && SUBJECTS.includes(value as Subject);
-}
 
 function isGrade(value: unknown): value is GradeLevel {
   return GRADES.includes(value as GradeLevel);

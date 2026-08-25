@@ -1,4 +1,14 @@
-export type Subject = 'matematika' | 'ipa' | 'ips' | 'indonesia' | 'inggris';
+export type Subject =
+  | 'matematika'
+  | 'ipa'
+  | 'ips'
+  | 'indonesia'
+  | 'inggris'
+  | 'jawa'
+  | 'informatika'
+  | 'musik'
+  | 'pjok'
+  | 'pkn';
 
 export type GradeLevel = 7 | 8 | 9;
 
@@ -90,6 +100,8 @@ export interface Enemy {
     itemId: string;
     dropChance: number; // 0 to 1
   }[];
+  /** Optional playful lines shown when the player chooses to run away. */
+  escapeRoasts?: string[];
 }
 
 export interface Question {

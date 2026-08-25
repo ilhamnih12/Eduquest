@@ -16,7 +16,11 @@ import { ITEM_DATABASE, getItemById } from '@/lib/game/item-database';
 import { getRandomEnemy } from '@/lib/game/enemies-database';
 import { getRandomCurriculumTopic } from '@/lib/game/curriculum';
 import { formatQuestion, shuffleQuestionOptions } from '@/lib/game/question-format';
-import { INITIAL_ACHIEVEMENTS, checkAchievements } from '@/lib/game/achievements-database';
+import {
+  INITIAL_ACHIEVEMENTS,
+  checkAchievements,
+  normalizeAchievements,
+} from '@/lib/game/achievements-database';
 import {
   calculateRequiredExp,
   getPlayerTitle,
@@ -30,6 +34,7 @@ import {
 } from '@/lib/game/battle-logic';
 import { saveLocalGameState, loadLocalGameState } from '@/lib/db/dexie';
 import { soundManager } from '@/lib/utils';
+import { createDefaultStatistics, normalizeStatistics } from '@/lib/game/subjects';
 
 /**
  * Batas waktu aman untuk operasi IndexedDB/Dexie.
@@ -74,23 +79,7 @@ interface GameStoreState {
   resetAllProgress: () => Promise<void>;
 }
 
-const DEFAULT_STATS: GameStatistics = {
-  totalBattles: 0,
-  victories: 0,
-  defeats: 0,
-  questionsAnswered: 0,
-  correctAnswers: 0,
-  bestStreak: 0,
-  currentStreak: 0,
-  goldEarnedTotal: 100,
-  subjectPerformance: {
-    matematika: { correct: 0, total: 0, streak: 0, bestStreak: 0 },
-    ipa: { correct: 0, total: 0, streak: 0, bestStreak: 0 },
-    ips: { correct: 0, total: 0, streak: 0, bestStreak: 0 },
-    indonesia: { correct: 0, total: 0, streak: 0, bestStreak: 0 },
-    inggris: { correct: 0, total: 0, streak: 0, bestStreak: 0 },
-  },
-};
+const DEFAULT_STATS: GameStatistics = createDefaultStatistics();
 
 const DEFAULT_CHARACTER: Character = {
   name: 'Petualang Cendekia',
@@ -122,6 +111,24 @@ const DEFAULT_STARTER_INVENTORY: InventoryItem[] = [
   { itemId: 'weapon_wooden_ruler', quantity: 1, equipped: true },
   { itemId: 'armor_school_vest', quantity: 1, equipped: true },
 ];
+
+function normalizeGameState(savedState: GameState): GameState {
+  return {
+    ...savedState,
+    character: {
+      ...DEFAULT_CHARACTER,
+      ...savedState.character,
+      attributes: {
+        ...DEFAULT_CHARACTER.attributes,
+        ...(savedState.character?.attributes ?? {}),
+      },
+      activeBuffs: savedState.character?.activeBuffs ?? [],
+    },
+    inventory: Array.isArray(savedState.inventory) ? savedState.inventory : [...DEFAULT_STARTER_INVENTORY],
+    statistics: normalizeStatistics(savedState.statistics),
+    achievements: normalizeAchievements(savedState.achievements),
+  };
+}
 
 const INITIAL_BATTLE_STATE: BattleState = {
   isActive: false,
@@ -178,12 +185,14 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       // Selalu beri batas waktu agar tidak pernah menggantung
       const savedState = await withTimeout(loadLocalGameState(userId), null);
       if (savedState) {
-        // Ensure character stats and equipment are calculated
-        if (username && savedState.character) {
-          savedState.character.name = username;
+        // Old IndexedDB records may predate new subjects or achievements.
+        const normalizedState = normalizeGameState(savedState);
+        if (username) {
+          normalizedState.character.name = username;
         }
+        await withTimeout(saveLocalGameState(normalizedState), undefined);
         set({
-          gameState: savedState,
+          gameState: normalizedState,
           isInitialized: true,
         });
       } else {
@@ -1000,8 +1009,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       if (response.ok) {
         const data = await response.json();
         if (data.syncedState) {
-          set({ gameState: { ...data.syncedState, isSyncing: false } });
-          await saveLocalGameState(data.syncedState);
+          const normalizedState = normalizeGameState(data.syncedState as GameState);
+          const readyState = { ...normalizedState, isSyncing: false };
+          set({ gameState: readyState });
+          await saveLocalGameState(readyState);
         }
       }
     } catch (e) {

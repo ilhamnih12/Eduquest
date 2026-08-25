@@ -16,23 +16,21 @@ import { useGameStore } from '@/store/gameStore';
 import type { AiChatMessage } from '@/types/ai';
 import type { Subject } from '@/types/game';
 import { formatMathText } from '@/lib/game/question-format';
+import { SUBJECTS } from '@/lib/game/subjects';
 
 const STORAGE_KEY = 'eduquest_ai_chat_v1';
 const MAX_STORED_MESSAGES = 40;
 
-const SUBJECT_NAMES: Record<Subject, string> = {
-  matematika: 'Matematika',
-  ipa: 'IPA',
-  ips: 'IPS',
-  indonesia: 'Bahasa Indonesia',
-  inggris: 'Bahasa Inggris',
-};
+const SUBJECT_NAMES = Object.fromEntries(
+  SUBJECTS.map((subject) => [subject.id, subject.name])
+) as Record<Subject, string>;
 
 const QUICK_PROMPTS = [
   { label: '📐 Cara mengerjakan Pythagoras', text: 'Kalau sisi segitiga 6 cm dan 8 cm, bagaimana langkah mencari sisi miringnya? Jelaskan caranya!' },
   { label: '🍎 Jelaskan Hukum Newton II', text: 'Tolong jelaskan Hukum Newton kedua dengan contoh sehari-hari dong.' },
-  { label: '✨ Tips belajar tiap hari', text: 'Beriku tips agar konsisten belajar setiap hari walau banyak PR.' },
-  { label: '📚 Rumus luas lingkaran', text: 'Bagaimana cara menghafal dan memakai rumus luas dan keliling lingkaran?' },
+  { label: '✨ Tips belajar tiap hari', text: 'Beri aku tips agar konsisten belajar setiap hari walau banyak PR.' },
+  { label: '💻 Belajar algoritma', text: 'Jelaskan dekomposisi dan algoritma pakai contoh sehari-hari yang gampang, dong.' },
+  { label: '🪷 Unggah-ungguh basa Jawa', text: 'Apa bedanya ngoko dan krama? Beri contoh percakapan singkat, ya.' },
 ];
 
 interface ChatMessage extends AiChatMessage {
@@ -264,7 +262,7 @@ export function AiChatBubble() {
                     Halo{user?.username ? `, ${user.username}` : ' Petualang'}! 👋
                   </p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed px-4">
-                    Aku <span className="font-bold text-edu-accentLight dark:text-edu-accentDark">Guru AI</span> berdasi
+                    Aku <span className="font-bold text-edu-accentLight dark:text-edu-accentDark">Guru AI</span> berbasis
                     Google Gemini. Tanyakan materi SMP atau minta tips belajar — aku jelaskan langkah demi langkah!
                   </p>
                 </div>
